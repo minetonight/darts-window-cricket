@@ -47,7 +47,7 @@ requirements = python3,kivy
 #presplash.filename = %(source.dir)s/data/presplash.png
 
 # (str) Icon of the application
-icon.filename = %(source.dir)s/icon.png
+icon.filename = %(source.dir)s/assets/icons/icon.png
 
 # (list) Supported orientations
 # Valid options are: landscape, portrait, portrait-reverse or landscape-reverse
@@ -90,8 +90,8 @@ fullscreen = 0
 #android.presplash_lottie = "path/to/lottie/file.json"
 
 # (str) Adaptive icon of the application (used if Android API level is 26+ at runtime)
-icon.adaptive_foreground.filename = %(source.dir)s/icon_fg.png
-icon.adaptive_background.filename = %(source.dir)s/icon_bg.png
+icon.adaptive_foreground.filename = %(source.dir)s/assets/icons/icon_fg.png
+icon.adaptive_background.filename = %(source.dir)s/assets/icons/icon_bg.png
 
 # (list) Permissions
 # (See https://python-for-android.readthedocs.io/en/latest/buildoptions/#build-options-1 for all the supported syntaxes and properties)
@@ -211,12 +211,18 @@ android.accept_sdk_license = True
 # (list) add java compile options
 # this can for example be necessary when importing certain java libraries using the 'android.gradle_dependencies' option
 # see https://developer.android.com/studio/write/java8-support for further information
-# android.add_compile_options = "sourceCompatibility = 1.8", "targetCompatibility = 1.8"
+android.add_compile_options = "sourceCompatibility = 17", "targetCompatibility = 17"
 
 # (list) Gradle repositories to add {can be necessary for some android.gradle_dependencies}
 # please enclose in double quotes 
 # e.g. android.gradle_repositories = "maven { url 'https://kotlin.bintray.com/ktor' }"
-#android.add_gradle_repositories =
+android.gradle_repositories = "maven { url 'https://maven.google.com' }"
+
+# (str) The Android Gradle plugin version to use
+android.gradle_plugin_version = 7.3.1
+
+# (str) The Gradle version to use
+android.gradle_version = 7.4
 
 # (list) packaging options to add 
 # see https://google.github.io/android-gradle-dsl/current/com.android.build.gradle.internal.dsl.PackagingOptions.html

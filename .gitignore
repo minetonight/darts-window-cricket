@@ -3,6 +3,10 @@ __pycache__/
 *.py[cod]
 *$py.class
 
+# Buildozer
+.buildozer/
+bin/
+
 # C extensions
 *.so
 
