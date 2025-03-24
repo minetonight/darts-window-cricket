@@ -5,7 +5,6 @@ __pycache__/
 
 # Buildozer
 .buildozer/
-bin/
 
 # C extensions
 *.so
