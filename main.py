@@ -16,6 +16,7 @@ class Player:
         self.sectors = {str(i): 0 for i in range(4, 10)}
         self.sectors['Bull'] = 0
         self.marks_this_round = 0
+        self.mpr = 1.0  # Initialize MPR to 1.0
 
 class CricketGame:
     def __init__(self):
@@ -77,75 +78,32 @@ class SectorButton(Button):
         self.background_color = [0.2, 0.6, 0.8, 1]  # Initialize with blue color
 
     def on_sector_state(self, instance, value):
-        # Update button color based on state
+        # Update button color based on state (dark theme)
         if value == 'normal':
-            self.background_color = [0.2, 0.6, 0.8, 1]  # Blue
+            self.background_color = [0.2, 0.4, 0.6, 1]  # Darker blue
         elif value == 'opponent_scoring':
-            self.background_color = [1.0, 0.65, 0.0, 1]  # Orange
+            self.background_color = [0.6, 0.4, 0.0, 1]  # Darker orange
         elif value == 'player_scoring':
-            self.background_color = [0.3, 0.8, 0.3, 1]  # Green
+            self.background_color = [0.2, 0.5, 0.2, 1]  # Darker green
         else:  # closed
-            self.background_color = [0.7, 0.7, 0.7, 1]  # Gray
+            self.background_color = [0.3, 0.3, 0.3, 1]  # Dark gray
 
 class SectorIndicator(BoxLayout):
     sector = StringProperty('')
     hits = NumericProperty(0)
 
-    def __init__(self, **kwargs):
-        # If sector is passed directly, save it before super init
-        sector_arg = kwargs.pop('sector', None)
-        if sector_arg:
-            self.sector = str(sector_arg)
-            
-        super().__init__(**kwargs)
-        
-        # Create marks container if not created by KV
-        if not hasattr(self, 'marks_box'):
-            self.orientation = 'horizontal'
-            self.size_hint_y = None
-            self.height = dp(50)  # Match button height
-            self.padding = [dp(5), dp(5)]
-            self.spacing = dp(5)
-
-            # Add sector label
-            self.label = Label(
-                text=str(self.sector),
-                size_hint_x=0.3,
-                font_size='20sp',
-                bold=True,
-                color=(0.2, 0.2, 0.2, 1)
-            )
-            self.add_widget(self.label)
-            
-            # Create marks container
-            self.marks_box = BoxLayout(
-                orientation='horizontal',
-                spacing=dp(4),
-                size_hint_x=0.7,
-                padding=[dp(2), dp(8)]
-            )
-            self.add_widget(self.marks_box)
-            self.update_marks(0)
-
     def update_marks(self, hits):
+        """Update the visual marks to show the number of hits"""
         self.hits = hits
-        self.marks_box.clear_widgets()
-        for i in range(3):
-            mark = Label(
-                size_hint_x=None,
-                width=dp(30),
-                font_size='24sp',
-                bold=True
-            )
-            
+        mark_widgets = [self.ids.mark1, self.ids.mark2, self.ids.mark3]
+        
+        for i, mark in enumerate(mark_widgets):
             if i < hits:
-                mark.text = 'v'  # self-made checkmark
-                mark.color = (0.2, 0.8, 0.2, 1)  # Bright green
+                mark.text = 'v'  # Checkmark for hit
+                mark.color = (0.2, 0.8, 0.2, 1)  # Bright green for contrast
             else:
-                mark.text = '_'
-                mark.color = (0.7, 0.7, 0.7, 1)  # Gray underscore
-                
-            self.marks_box.add_widget(mark)
+                mark.text = '_'  # Underscore for empty
+                mark.color = (0.4, 0.4, 0.4, 1)  # Dark gray
 
 class GameScreen(Screen):
     def __init__(self, **kwargs):
@@ -203,22 +161,26 @@ class GameScreen(Screen):
         p2_score = self.game.players[1].score
         p1_diff = p1_score - p2_score
         p2_diff = p2_score - p1_score
-        self.ids.player1_diff.text = f"Diff: {p1_diff}"
-        self.ids.player2_diff.text = f"Diff: {p2_diff}"
         
-        # Update player backgrounds based on current player
-        p1_bg = [0.3, 0.7, 0.3, 1] if self.game.current_player == 0 else [0.9, 0.9, 0.9, 1]
-        p2_bg = [0.3, 0.7, 0.3, 1] if self.game.current_player == 1 else [0.9, 0.9, 0.9, 1]
+        # Format diffs with brackets and explicit sign
+        self.ids.player1_diff.text = f"({'+' if p1_diff > 0 else '-' if p1_diff == 0 else ''}{p1_diff})"
+        self.ids.player2_diff.text = f"({'+' if p2_diff > 0 else '-' if p2_diff == 0 else ''}{p2_diff})"
+
+        # Update MPR displays
+        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.1f}"
+        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.1f}"
         
-        # Update player name backgrounds
-        for widget_id, bg in [('player1_name', p1_bg), ('player2_name', p2_bg),
-                            ('player1_score', p1_bg), ('player2_score', p2_bg),
-                            ('player1_diff', p1_bg), ('player2_diff', p2_bg)]:
-            widget = self.ids[widget_id]
-            widget.canvas.before.clear()
-            with widget.canvas.before:
+        # Update player backgrounds based on current player (dark theme)
+        p1_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 0 else [0.18, 0.18, 0.18, 1]
+        p2_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 1 else [0.18, 0.18, 0.18, 1]
+        
+        # Update container backgrounds
+        for container_id, bg in [('player1_container', p1_bg), ('player2_container', p2_bg)]:
+            container = self.ids[container_id]
+            container.canvas.before.clear()
+            with container.canvas.before:
                 Color(*bg)
-                Rectangle(pos=widget.pos, size=widget.size)
+                Rectangle(pos=container.pos, size=container.size)
         
         # Update sector buttons and indicators
         current = self.game.current_player
