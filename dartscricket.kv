@@ -1,4 +1,5 @@
 #:kivy 2.2.1
+#:import Spinner kivy.uix.spinner.Spinner
 
 <SectorButton>:
     background_normal: ''
@@ -75,6 +76,139 @@
                 halign: 'center'
                 valign: 'middle'
 
+<DataInputScreen>:
+    canvas.before:
+        Color:
+            rgba: (0.12, 0.12, 0.12, 1)  # Dark background
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '20dp'
+        spacing: '15dp'
+
+        Label:
+            text: 'Darts Cricket Setup'
+            font_size: '32sp'
+            bold: True
+            size_hint_y: 0.2
+
+        BoxLayout:
+            orientation: 'vertical'
+            spacing: '15dp'
+            size_hint_y: 0.6
+            # Player 1 Name
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: '10dp'
+                
+                TextInput:
+                    text: 'Player 1 name'
+                    id: player1_name
+                    multiline: False
+                    font_size: '20sp'
+                    background_color: (0.12, 0.12, 0.12, 1)
+                    foreground_color: (1, 1, 1, 1)
+
+            # Player 2 Name
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: '10dp'
+                                
+                TextInput:
+                    text: 'Player 2 name'
+                    id: player2_name
+                    multiline: False
+                    font_size: '20sp'
+                    background_color: (0.12, 0.12, 0.12, 1)
+                    foreground_color: (1, 1, 1, 1)
+
+            # Switch Positions Button
+            Button:
+                text: 'Switch Positions'
+                size_hint_y: None
+                height: dp(40)
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.9, 0.9, 1)
+                font_size: '18sp'
+                bold: True
+                on_release: root.switch_positions()
+
+            # Highest Scoring Sector
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: '10dp'
+                
+                Label:
+                    text: 'Highest Sector:'
+                    size_hint_x: 0.3
+                    font_size: '20sp'
+                
+                Spinner:
+                    id: highest_sector
+                    text: '20'
+                    values: [str(i) for i in range(20, 5, -1)]
+                    size_hint_x: 0.35
+                    font_size: '20sp'
+                    on_text: root.update_lowest_sector()
+                
+                Label:
+                    text: 'Lowest Sector:'
+                    size_hint_x: 0.2
+                    font_size: '20sp'
+                
+                Label:
+                    id: lowest_sector
+                    text: '15'
+                    size_hint_x: 0.15
+                    font_size: '20sp'
+
+            # Bull Points
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: '10dp'
+                
+                Label:
+                    text: 'Bull Points:'
+                    size_hint_x: 0.3
+                    font_size: '20sp'
+                
+                BoxLayout:
+                    size_hint_x: 0.7
+                    spacing: '10dp'
+                    
+                    ToggleButton:
+                        id: bull_highest_plus_5
+                        text: highest_sector.text + ' + 5'
+                        group: 'bull_points'
+                        font_size: '20sp'
+                        on_state: root.update_bull_points()
+                        state: 'down'  # Default selected
+                    
+                    ToggleButton:
+                        id: bull_25
+                        text: '25 points'
+                        group: 'bull_points'
+                        font_size: '20sp'
+                        on_state: root.update_bull_points()
+
+        Button:
+            text: 'Start Game'
+            size_hint_y: 0.2
+            background_normal: ''
+            background_color: (0.3, 0.7, 0.3, 1)
+            color: (1, 1, 1, 1)
+            font_size: '24sp'
+            bold: True
+            on_release: root.start_game()
+
 <GameScreen>:
     canvas.before:
         Color:
@@ -126,7 +260,7 @@
 
                 Label:
                     id: player1_name
-                    text: 'Verano'
+                    text: 'Player 1'
                     font_size: '24sp'
                     bold: True
                     size_hint_y: 0.4
@@ -165,7 +299,7 @@
 
                 Label:
                     id: player2_name
-                    text: 'Invierno'
+                    text: 'Player 2'
                     font_size: '24sp'
                     bold: True
                     size_hint_y: 0.4
@@ -204,79 +338,9 @@
             spacing: '5dp'
             padding: '5dp'
 
-            # Row 1 - Sector 9
-            SectorIndicator:
-                id: p1_sector_9
-                sector: '9'
-            SectorButton:
-                id: btn_sector_9
-                text: '9'
-                on_release: root.on_sector_press('9')
-            SectorIndicator:
-                id: p2_sector_9
-                sector: '9'
+            # Dynamic sector rows will be added here by Python code
 
-            # Row 2 - Sector 8
-            SectorIndicator:
-                id: p1_sector_8
-                sector: '8'
-            SectorButton:
-                id: btn_sector_8
-                text: '8'
-                on_release: root.on_sector_press('8')
-            SectorIndicator:
-                id: p2_sector_8
-                sector: '8'
-
-            # Row 3 - Sector 7
-            SectorIndicator:
-                id: p1_sector_7
-                sector: '7'
-            SectorButton:
-                id: btn_sector_7
-                text: '7'
-                on_release: root.on_sector_press('7')
-            SectorIndicator:
-                id: p2_sector_7
-                sector: '7'
-
-            # Row 4 - Sector 6
-            SectorIndicator:
-                id: p1_sector_6
-                sector: '6'
-            SectorButton:
-                id: btn_sector_6
-                text: '6'
-                on_release: root.on_sector_press('6')
-            SectorIndicator:
-                id: p2_sector_6
-                sector: '6'
-
-            # Row 5 - Sector 5
-            SectorIndicator:
-                id: p1_sector_5
-                sector: '5'
-            SectorButton:
-                id: btn_sector_5
-                text: '5'
-                on_release: root.on_sector_press('5')
-            SectorIndicator:
-                id: p2_sector_5
-                sector: '5'
-
-            # Row 6 - Sector 4
-            SectorIndicator:
-                id: p1_sector_4
-                sector: '4'
-            SectorButton:
-                id: btn_sector_4
-                text: '4'
-                on_release: root.on_sector_press('4')
-            SectorIndicator:
-                id: p2_sector_4
-                sector: '4'
-
-            # Row 7 - Bull
+            # Bull row (always present)
             SectorIndicator:
                 id: p1_sector_bull
                 sector: 'Bull'
