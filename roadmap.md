@@ -26,10 +26,13 @@ v   )) data input screen has start game button
 v   )) the sectors values and points given are updated with values from the data input screen
 v   )) add switch positions button below players names, that swaps the texts in the two input fields
 
-    )) when the game ends, the next player button shows "new game?" text and leads to data input screen with the last game values preloaded
-    ))) all necessary players game variables are reset with the start of a new game
+v    )) when the game ends, the next player button shows "new game?" text and leads to data input screen with the last game values preloaded
+v   ))) all necessary players game variables are reset with the start of a new game
 
+    ) fix marks in more than three different sectors.
 v   ) fix nine marks in nine sectors, as up to three sectors with nine marks total.
     )) add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}
+
+    ) add vusual hit counter in sectors with dots, for current round only
 
     ) add font and nice checks for marks

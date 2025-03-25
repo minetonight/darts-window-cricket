@@ -4,9 +4,12 @@ from kivy.uix.button import Button
 from kivy.uix.label import Label
 from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.properties import ListProperty, NumericProperty, BooleanProperty, StringProperty
+from kivy.properties import ListProperty, NumericProperty, BooleanProperty, StringProperty, ColorProperty
 from kivy.metrics import dp
 from kivy.graphics import Color, Rectangle, Line
+
+class PlayerContainer(BoxLayout):
+    background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
 
 class Player:
     def __init__(self, name):
@@ -14,7 +17,7 @@ class Player:
         self.score = 0
         self.sectors = {}  # Will be initialized with game settings
         self.marks_this_round = 0  # Total marks made this round
-        self.sectors_marked = 0  # Number of sectors marked this round
+        self.sectors_hit_this_round = set()  # Set of sectors hit in current round
         self.mpr = 1.0
 
 class CricketGame:
@@ -34,7 +37,7 @@ class CricketGame:
     def switch_player(self):
         self.current_player = 1 - self.current_player
         self.players[self.current_player].marks_this_round = 0
-        self.players[self.current_player].sectors_marked = 0
+        self.players[self.current_player].sectors_hit_this_round.clear()
 
     def add_hit(self, sector, hits=1):
         if self.game_over:
@@ -46,8 +49,8 @@ class CricketGame:
         if current.marks_this_round + hits > 9:
             return False
             
-        # Check if sector is already marked and if we've reached the limit of 3 sectors
-        if current.sectors[sector] == 0 and current.sectors_marked >= 3:
+        # Check if we've reached the limit of 3 sectors per turn
+        if len(current.sectors_hit_this_round) >= 3 and sector not in current.sectors_hit_this_round:
             return False
 
         opponent = self.players[1 - self.current_player]
@@ -59,28 +62,28 @@ class CricketGame:
             actual_hits = current.sectors[sector] - old_hits
             current.marks_this_round += actual_hits
             
-            # If this is the first hit on this sector, increment sectors_marked
-            if old_hits == 0:
-                current.sectors_marked += 1
+            # Track this sector as hit in current round
+            current.sectors_hit_this_round.add(sector)
                 
             remaining_hits = hits - actual_hits
         else:
-            # Sector is already closed (has 3 marks)
+            # Sector is already open (has 3 marks)
             remaining_hits = hits
-            current.marks_this_round += hits  # Count hits on closed sectors towards the 9 marks limit
+            current.marks_this_round += hits  # Count hits on open sectors towards the 9 marks limit
 
-        # Add points if sector is closed by current player
+        # Add points if sector is open by current player and not closed by opponent
         if remaining_hits > 0 and current.sectors[sector] >= 3:
             if opponent.sectors[sector] < 3:
                 points = remaining_hits * (self.bull_points if sector == 'Bull' else int(sector))
                 current.score += points
+                # Track this sector as hit in current round if it's open for scoring
+                current.sectors_hit_this_round.add(sector)
 
-        # Check if game is over
-        self.check_game_over()
         return True
 
     def check_game_over(self):
         for player in self.players:
+            # Check if all sectors are closed (3 marks by both players)
             all_closed = all(hits >= 3 for hits in player.sectors.values())
             if all_closed and player.score >= max(p.score for p in self.players):
                 self.game_over = True
@@ -88,7 +91,7 @@ class CricketGame:
         return False
 
 class SectorButton(Button):
-    sector_state = StringProperty('normal')  # 'normal', 'opponent_scoring', 'player_scoring', 'closed'
+    sector_state = StringProperty('normal')  # 'normal', 'opponent_open', 'player_open', 'closed'
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -99,9 +102,9 @@ class SectorButton(Button):
         # Update button color based on state (dark theme)
         if value == 'normal':
             self.background_color = [0.2, 0.4, 0.6, 1]  # Darker blue
-        elif value == 'opponent_scoring':
+        elif value == 'opponent_open':
             self.background_color = [0.6, 0.4, 0.0, 1]  # Darker orange
-        elif value == 'player_scoring':
+        elif value == 'player_open':
             self.background_color = [0.2, 0.5, 0.2, 1]  # Darker green
         else:  # closed
             self.background_color = [0.3, 0.3, 0.3, 1]  # Dark gray
@@ -124,6 +127,10 @@ class SectorIndicator(BoxLayout):
                 mark.color = (0.4, 0.4, 0.4, 1)  # Dark gray
 
 class DataInputScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.bull_points = 25  # Default value
+
     def update_lowest_sector(self):
         highest = int(self.ids.highest_sector.text)
         lowest = highest - 5
@@ -137,6 +144,15 @@ class DataInputScreen(Screen):
         else:
             self.bull_points = 25
 
+    def navigate_next(self, current_id):
+        # Handle navigation between inputs
+        if current_id == 'player1_name':
+            self.ids.player2_name.focus = True
+            self.ids.player2_name.cursor = (0, 0)  # Move cursor to start
+        elif current_id == 'player2_name':
+            self.ids.highest_sector.focus = True
+            self.ids.highest_sector.is_open = True  # Open the spinner dropdown
+
     def switch_positions(self):
         # Get current values
         player1_text = self.ids.player1_name.text
@@ -146,10 +162,21 @@ class DataInputScreen(Screen):
         self.ids.player1_name.text = player2_text
         self.ids.player2_name.text = player1_text
 
+    def validate_names(self):
+        # Get player names and strip whitespace
+        player1_name = self.ids.player1_name.text.strip()
+        player2_name = self.ids.player2_name.text.strip()
+        
+        # Check if names are empty or only whitespace
+        is_valid = bool(player1_name and player2_name)
+        self.ids.start_game_button.disabled = not is_valid
+        return is_valid
+
     def start_game(self):
+            
         # Get player names
-        player1_name = self.ids.player1_name.text.strip() or "Player 1"
-        player2_name = self.ids.player2_name.text.strip() or "Player 2"
+        player1_name = self.ids.player1_name.text.strip()
+        player2_name = self.ids.player2_name.text.strip()
         
         # Get game settings
         highest_sector = int(self.ids.highest_sector.text)
@@ -167,19 +194,30 @@ class GameScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game = None
-        self.setup_ui()
+        # Initialize dictionaries for sector buttons and indicators
+        self.sector_buttons = {}
+        self.p1_indicators = {}
+        self.p2_indicators = {}
+        # Set initial UI state
+        self.ids.player1_container.background_color = [0.18, 0.18, 0.18, 1]
+        self.ids.player2_container.background_color = [0.18, 0.18, 0.18, 1]
+        self.ids.next_player_btn.text = 'Next Player'
 
     def initialize_game(self, game):
+        """Initialize a new game"""
         self.game = game
         self.create_sector_buttons()
         self.update_display()
 
     def create_sector_buttons(self):
-        # Clear existing sector buttons (except bull)
+        # Clear existing sector buttons
         game_grid = self.ids.game_grid
-        # Keep the bull row (last 3 widgets) in correct order
-        bull_widgets = list(reversed(game_grid.children[:3]))  # Reverse to get correct order
         game_grid.clear_widgets()
+        
+        # Clear old button and indicator references
+        self.sector_buttons.clear()
+        self.p1_indicators.clear()
+        self.p2_indicators.clear()
         
         # Add sector buttons in reverse order (highest to lowest)
         for sector in range(self.game.highest_sector, self.game.lowest_sector - 1, -1):
@@ -206,20 +244,27 @@ class GameScreen(Screen):
             game_grid.add_widget(btn)
             game_grid.add_widget(p2_indicator)
         
-        # Add bull row back in correct order
-        for widget in bull_widgets:
-            game_grid.add_widget(widget)
-            
-        # Store Bull indicators in our dictionaries
-        self.p1_indicators['Bull'] = self.ids.p1_sector_bull
-        self.p2_indicators['Bull'] = self.ids.p2_sector_bull
-        self.sector_buttons['Bull'] = self.ids.btn_sector_bull
-
-    def setup_ui(self):
-        # Store references to sector buttons and indicators
-        self.sector_buttons = {}
-        self.p1_indicators = {}
-        self.p2_indicators = {}
+        # Add Bull row
+        # Create Bull indicators
+        p1_bull = SectorIndicator(sector='Bull')
+        p1_bull.id = 'p1_sector_bull'
+        self.p1_indicators['Bull'] = p1_bull
+        
+        # Create Bull button
+        bull_btn = SectorButton(text=f'Bull[{self.game.bull_points} pts]')
+        bull_btn.id = 'btn_sector_bull'
+        bull_btn.bind(on_release=lambda x: self.on_sector_press('Bull'))
+        self.sector_buttons['Bull'] = bull_btn
+        
+        # Create Bull indicator for player 2
+        p2_bull = SectorIndicator(sector='Bull')
+        p2_bull.id = 'p2_sector_bull'
+        self.p2_indicators['Bull'] = p2_bull
+        
+        # Add Bull widgets to grid
+        game_grid.add_widget(p1_bull)
+        game_grid.add_widget(bull_btn)
+        game_grid.add_widget(p2_bull)
 
     def on_sector_press(self, sector):
         if not self.game:
@@ -231,18 +276,31 @@ class GameScreen(Screen):
             
         if self.game.add_hit(sector):
             self.update_display()
-            if self.game.game_over:
-                winner = self.game.players[0] if self.game.players[0].score > self.game.players[1].score else self.game.players[1]
-                self.ids.player1_name.text = "Game Over!"
-                self.ids.player2_name.text = f"{winner.name} wins!"
-                self.ids.player1_score.text = str(self.game.players[0].score)
-                self.ids.player2_score.text = str(self.game.players[1].score)
 
     def next_player(self, *args):
-        if not self.game or self.game.game_over:
+        if not self.game:
             return
-        self.game.switch_player()
-        self.update_display()
+            
+        if self.game.game_over:
+            # Return to data input screen
+            self.ids.next_player_btn.text = "Next Player" # reset button text
+            self.manager.current = 'data_input'
+            return
+        else:    
+            # Check for game over after switching players
+            self.game.switch_player()
+            self.update_display()
+            
+            self.game.check_game_over()
+
+            if self.game.game_over:
+                winner = self.game.players[0] if self.game.players[0].score > self.game.players[1].score else self.game.players[1]
+                # Set winner container to gold, loser to brown
+                winner_idx = 0 if winner == self.game.players[0] else 1
+                self.ids.player1_container.background_color = [0.8, 0.7, 0.2, 1] if winner_idx == 0 else [0.6, 0.4, 0.2, 1]
+                self.ids.player2_container.background_color = [0.8, 0.7, 0.2, 1] if winner_idx == 1 else [0.6, 0.4, 0.2, 1]
+                # Update next player button text
+                self.ids.next_player_btn.text = f"{winner.name} wins!\nNew Game?"
 
     def update_display(self):
         if not self.game:
@@ -272,60 +330,39 @@ class GameScreen(Screen):
         p1_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 0 else [0.18, 0.18, 0.18, 1]
         p2_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 1 else [0.18, 0.18, 0.18, 1]
         
-        # Update container backgrounds
-        for container_id, bg in [('player1_container', p1_bg), ('player2_container', p2_bg)]:
-            container = self.ids[container_id]
-            container.canvas.before.clear()
-            with container.canvas.before:
-                Color(*bg)
-                Rectangle(pos=container.pos, size=container.size)
+        # Update container backgrounds using the property
+        self.ids.player1_container.background_color = p1_bg
+        self.ids.player2_container.background_color = p2_bg
         
         # Update sector buttons and indicators
         current = self.game.current_player
         opponent = 1 - current
         
-        # Update Bull button text with points
-        self.ids.btn_sector_bull.text = f'Bull[{self.game.bull_points} pts]'
+        # Create list of all sectors including Bull
+        sectors = [str(i) for i in range(self.game.highest_sector, self.game.lowest_sector - 1, -1)]
+        sectors.append('Bull')
         
-        # Update all sector buttons and indicators
-        for sector in range(self.game.highest_sector, self.game.lowest_sector - 1, -1):
-            sector_str = str(sector)
-            if sector_str not in self.sector_buttons:
+        # Update all sector buttons and indicators in a single iteration
+        for sector in sectors:
+            if sector not in self.sector_buttons:
                 continue
                 
-            current_hits = self.game.players[current].sectors[sector_str]
-            opponent_hits = self.game.players[opponent].sectors[sector_str]
+            current_hits = self.game.players[current].sectors[sector]
+            opponent_hits = self.game.players[opponent].sectors[sector]
             
             # Update button state from current player's perspective
             if current_hits >= 3 and opponent_hits >= 3:
-                self.sector_buttons[sector_str].sector_state = 'closed'
+                self.sector_buttons[sector].sector_state = 'closed'  # Sector is closed (both players have 3 marks)
             elif current_hits >= 3 and opponent_hits < 3:
-                self.sector_buttons[sector_str].sector_state = 'player_scoring'
+                self.sector_buttons[sector].sector_state = 'player_open'  # Sector is open for current player
             elif opponent_hits >= 3 and current_hits < 3:
-                self.sector_buttons[sector_str].sector_state = 'opponent_scoring'
+                self.sector_buttons[sector].sector_state = 'opponent_open'  # Sector is open for opponent
             else:
-                self.sector_buttons[sector_str].sector_state = 'normal'
+                self.sector_buttons[sector].sector_state = 'normal'  # Sector is not open for either player
             
             # Update scoring indicators
-            self.p1_indicators[sector_str].update_marks(self.game.players[0].sectors[sector_str])
-            self.p2_indicators[sector_str].update_marks(self.game.players[1].sectors[sector_str])
-        
-        # Update Bull indicators
-        self.p1_indicators['Bull'].update_marks(self.game.players[0].sectors['Bull'])
-        self.p2_indicators['Bull'].update_marks(self.game.players[1].sectors['Bull'])
-        
-        # Update Bull button state
-        current_hits = self.game.players[current].sectors['Bull']
-        opponent_hits = self.game.players[opponent].sectors['Bull']
-        
-        if current_hits >= 3 and opponent_hits >= 3:
-            self.ids.btn_sector_bull.sector_state = 'closed'
-        elif current_hits >= 3 and opponent_hits < 3:
-            self.ids.btn_sector_bull.sector_state = 'player_scoring'
-        elif opponent_hits >= 3 and current_hits < 3:
-            self.ids.btn_sector_bull.sector_state = 'opponent_scoring'
-        else:
-            self.ids.btn_sector_bull.sector_state = 'normal'
+            self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector])
+            self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector])
 
 class DartsCricketApp(App):
     def build(self):
