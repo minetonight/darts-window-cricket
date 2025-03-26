@@ -19,6 +19,14 @@ class Player:
         self.marks_this_round = 0  # Total marks made this round
         self.sectors_hit_this_round = set()  # Set of sectors hit in current round
         self.mpr = 1.0
+        self.rounds = 1  # Add rounds counter
+
+    def calculate_mpr(self):
+        """Calculate Marks Per Round based on total marks in sectors"""
+        if self.rounds == 0:
+            return 1.0
+        total_marks = sum(self.sectors.values())
+        return total_marks / self.rounds
 
 class CricketGame:
     def __init__(self, player1_name, player2_name, highest_sector, lowest_sector, bull_points):
@@ -35,10 +43,14 @@ class CricketGame:
             player.sectors['Bull'] = 0
 
     def switch_player(self):
+        # Increment rounds for the leaving player
+        self.players[self.current_player].rounds += 1
+        
         self.current_player = 1 - self.current_player
         self.players[self.current_player].marks_this_round = 0
         self.players[self.current_player].sectors_hit_this_round.clear()
-
+        self.players[self.current_player].mpr = self.players[self.current_player].calculate_mpr()
+        
     def add_hit(self, sector, hits=1):
         if self.game_over:
             return False
@@ -51,7 +63,7 @@ class CricketGame:
             return False  # Don't count hits on closed sectors
         
         # Check if player has already used 9 marks this round
-        if current.marks_this_round + hits > 9:
+        if current.marks_this_round >= 9:
             return False
             
         # Check if we've reached the limit of 3 sectors per turn
@@ -60,28 +72,21 @@ class CricketGame:
         
         # Update hits for the sector
         if current.sectors[sector] < 3:
-            old_hits = current.sectors[sector]
-            current.sectors[sector] = min(3, current.sectors[sector] + hits)
-            actual_hits = current.sectors[sector] - old_hits
-            current.marks_this_round += actual_hits
-            
-            # Track this sector as hit in current round
+            current.sectors[sector] += 1
+            current.marks_this_round += 1
             current.sectors_hit_this_round.add(sector)
-                
-            remaining_hits = hits - actual_hits
         else:
             # Sector is already open (has 3 marks)
-            remaining_hits = hits
-            current.marks_this_round += hits  # Count hits on open sectors towards the 9 marks limit
-
-        # Add points if sector is open by current player and not closed by opponent
-        if remaining_hits > 0 and current.sectors[sector] >= 3:
+            current.marks_this_round += 1
+            # Add points if sector is open by current player and not closed by opponent
             if opponent.sectors[sector] < 3:
-                points = remaining_hits * (self.bull_points if sector == 'Bull' else int(sector))
+                points = self.bull_points if sector == 'Bull' else int(sector)
+                current.sectors[sector] += 1
                 current.score += points
-                # Track this sector as hit in current round if it's open for scoring
                 current.sectors_hit_this_round.add(sector)
 
+        # Update MPR after the hit
+        current.mpr = current.calculate_mpr()
         return True
 
     def check_game_over(self):
@@ -314,6 +319,11 @@ class GameScreen(Screen):
         self.ids.player2_name.text = self.game.players[1].name
         self.ids.player1_score.text = str(self.game.players[0].score)
         self.ids.player2_score.text = str(self.game.players[1].score)
+        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.1f}"
+        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.1f}"
+       
+        # Update rounds display
+        self.ids.rounds.text = f"R: {self.game.players[1].rounds}"
         
         # Calculate and update differences
         p1_score = self.game.players[0].score

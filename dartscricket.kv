@@ -273,7 +273,7 @@
             PlayerContainer:
                 id: player1_container
                 orientation: 'vertical'
-                size_hint_x: 0.5
+                size_hint_x: 0.45
                 canvas.before:
                     Color:
                         rgba: self.background_color
@@ -309,16 +309,24 @@
 
                 Label:
                     id: player1_mpr
-                    text: 'MPR: 1.0'
+                    text: 'MPR: 0.0'
                     font_size: '16sp'
                     bold: True
                     size_hint_y: 0.21
+
+            Label:
+                id: rounds
+                text: 'R: 1'
+                font_size: '26sp'
+                bold: True
+                size_hint_x: 0.10
+                background_color: (0.5, 0.5, 0.5, 1)
 
             # Player 2 section
             PlayerContainer:
                 id: player2_container
                 orientation: 'vertical'
-                size_hint_x: 0.5
+                size_hint_x: 0.45
                 canvas.before:
                     Color:
                         rgba: self.background_color
@@ -354,7 +362,7 @@
 
                 Label:
                     id: player2_mpr
-                    text: 'MPR: 1.0'
+                    text: 'MPR: 0.0'
                     font_size: '16sp'
                     bold: True
                     size_hint_y: 0.21

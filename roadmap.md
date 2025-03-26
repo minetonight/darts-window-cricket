@@ -8,8 +8,8 @@ v   ) the diff label must become 90% white 10% grayed
     ) add vusual hit counter in sectors with dots, for current round only
 
 
-    ) the game counts the marks per player and the rounds
-    ) the game shows the mpr marks per round next to the diff for each player 
+v   ) the game counts the rounds
+v   ) the game shows the mpr marks per round next to the diff for each player 
 v   )) just the layout
 
     ) implement undo last mark button and undo last round button
