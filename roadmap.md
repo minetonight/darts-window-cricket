@@ -1,5 +1,11 @@
 v   ) dark theme update
 v   )) change the background color to something dark and update all the text colors to be visible on dark background
+v   ) add font and nice checks for marks
+v   ) make the fonts larger
+v   ) the diff label must become 90% white 10% grayed
+
+
+    ) add vusual hit counter in sectors with dots, for current round only
 
 
     ) the game counts the marks per player and the rounds
@@ -29,10 +35,10 @@ v   )) add switch positions button below players names, that swaps the texts in 
 v    )) when the game ends, the next player button shows "new game?" text and leads to data input screen with the last game values preloaded
 v   ))) all necessary players game variables are reset with the start of a new game
 
-    ) fix marks in more than three different sectors.
+v   ) fix marks in more than three different sectors.
 v   ) fix nine marks in nine sectors, as up to three sectors with nine marks total.
     )) add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}
+    promted and failed with:
+    + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
 
-    ) add vusual hit counter in sectors with dots, for current round only
-
-    ) add font and nice checks for marks
+    ) 

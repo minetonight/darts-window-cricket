@@ -44,6 +44,11 @@ class CricketGame:
             return False
 
         current = self.players[self.current_player]
+        opponent = self.players[1 - self.current_player]
+        
+        # Check if sector is closed (both players have 3 marks)
+        if current.sectors[sector] >= 3 and opponent.sectors[sector] >= 3:
+            return False  # Don't count hits on closed sectors
         
         # Check if player has already used 9 marks this round
         if current.marks_this_round + hits > 9:
@@ -52,8 +57,6 @@ class CricketGame:
         # Check if we've reached the limit of 3 sectors per turn
         if len(current.sectors_hit_this_round) >= 3 and sector not in current.sectors_hit_this_round:
             return False
-
-        opponent = self.players[1 - self.current_player]
         
         # Update hits for the sector
         if current.sectors[sector] < 3:
@@ -120,7 +123,7 @@ class SectorIndicator(BoxLayout):
         
         for i, mark in enumerate(mark_widgets):
             if i < hits:
-                mark.text = 'v'  # Checkmark for hit
+                mark.text = '✓'  # check mark for hit
                 mark.color = (0.2, 0.8, 0.2, 1)  # Bright green for contrast
             else:
                 mark.text = '_'  # Underscore for empty

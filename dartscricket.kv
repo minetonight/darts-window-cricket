@@ -7,6 +7,7 @@
     color: (1, 1, 1, 1)  # White text
     font_size: '28sp'
     bold: True
+    font_name: 'assets/fonts/Roboto-Bold.ttf'
     size_hint_y: None
     height: dp(50)
     canvas.before:
@@ -18,6 +19,7 @@
 
 <Label>:
     font_size: '24sp'
+    font_name: 'assets/fonts/Roboto-Bold.ttf'
     color: (0.9, 0.9, 0.9, 1)  # Light gray text for dark theme
     text_size: self.size
     halign: 'center'
@@ -45,7 +47,8 @@
                 id: mark1
                 size_hint_x: None
                 width: dp(30)
-                font_size: '24sp'
+                font_size: '40sp'
+                font_name: 'assets/fonts/CODE2000.ttf'
                 bold: True
                 text: '_'
                 color: (0.4, 0.4, 0.4, 1)  # Darker gray for empty marks
@@ -57,7 +60,8 @@
                 id: mark2
                 size_hint_x: None
                 width: dp(30)
-                font_size: '24sp'
+                font_size: '40sp'
+                font_name: 'assets/fonts/CODE2000.ttf'
                 bold: True
                 text: '_'
                 color: (0.4, 0.4, 0.4, 1)  # Darker gray for empty marks
@@ -69,7 +73,8 @@
                 id: mark3
                 size_hint_x: None
                 width: dp(30)
-                font_size: '24sp'
+                font_size: '40sp'
+                font_name: 'assets/fonts/CODE2000.ttf'
                 bold: True
                 text: '_'
                 color: (0.4, 0.4, 0.4, 1)  # Darker gray for empty marks
@@ -291,16 +296,15 @@
                     Label:
                         id: player1_score
                         text: '0'
-                        font_size: '28sp'
+                        font_size: '32sp'
                         bold: True
                         size_hint_x: 0.6
 
                     Label:
                         id: player1_diff
                         text: '(-0)'
-                        font_size: '20sp'
+                        font_size: '28sp'
                         bold: True
-                        color: (0.5, 0.5, 0.5, 1)  # Gray color
                         size_hint_x: 0.4
 
                 Label:
@@ -337,16 +341,15 @@
                     Label:
                         id: player2_score
                         text: '0'
-                        font_size: '28sp'
+                        font_size: '32sp'
                         bold: True
                         size_hint_x: 0.6
 
                     Label:
                         id: player2_diff
                         text: '(-0)'
-                        font_size: '20sp'
+                        font_size: '28sp'
                         bold: True
-                        color: (0.5, 0.5, 0.5, 1)  # Gray color
                         size_hint_x: 0.4
 
                 Label:

@@ -3,6 +3,9 @@
 # (str) Title of your application
 title = Darts Window Cricket
 
+# (str) Application versioning (method 1)
+version = 0.5.1
+
 # (str) Package name
 package.name = darts_window_cricket
 
@@ -27,13 +30,6 @@ source.include_exts = py,png,jpg,kv,atlas
 # (list) List of exclusions using pattern matching
 # Do not prefix with './'
 #source.exclude_patterns = license,images/*/*.jpg
-
-# (str) Application versioning (method 1)
-version = 1.0.0
-
-# (str) Application versioning (method 2)
-# version.regex = __version__ = ['"](.*)['"]
-# version.filename = %(source.dir)s/main.py
 
 # (list) Application requirements
 # comma separated e.g. requirements = sqlite3,kivy
