@@ -26,16 +26,17 @@
     valign: 'middle'
 
 <SectorIndicator>:
-    orientation: 'horizontal'
+    orientation: 'vertical'  # Changed to vertical to stack marks and dots
     size_hint_y: None
     height: dp(50)
     padding: ['5dp', '5dp']
-    spacing: '5dp'
+    spacing: '2dp'  # Reduced spacing for tighter layout
 
     AnchorLayout:
         anchor_x: 'center'
         anchor_y: 'center'
         size_hint_x: 1
+        size_hint_y: 0.7  # Take 70% of height for marks
 
         BoxLayout:
             orientation: 'horizontal'
@@ -81,6 +82,16 @@
                 text_size: self.size
                 halign: 'center'
                 valign: 'middle'
+
+    Label:
+        id: dots_label
+        text: ''
+        size_hint_y: 0.3  # Take 30% of height for dots
+        font_size: '16sp'
+        color: (0.8, 0.8, 0.8, 1)  # Light gray for dots
+        text_size: self.size
+        halign: 'center'
+        valign: 'middle'
 
 <DataInputScreen>:
     canvas.before:

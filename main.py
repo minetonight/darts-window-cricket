@@ -18,6 +18,7 @@ class Player:
         self.sectors = {}  # Will be initialized with game settings
         self.marks_this_round = 0  # Total marks made this round
         self.sectors_hit_this_round = set()  # Set of sectors hit in current round
+        self.current_round_sector_hits = {}  # Track hits per sector in current round
         self.mpr = 1.0
         self.rounds = 1  # Add rounds counter
 
@@ -41,6 +42,8 @@ class CricketGame:
         for player in self.players:
             player.sectors = {str(i): 0 for i in range(lowest_sector, highest_sector + 1)}
             player.sectors['Bull'] = 0
+            player.current_round_sector_hits = {str(i): 0 for i in range(lowest_sector, highest_sector + 1)}
+            player.current_round_sector_hits['Bull'] = 0
 
     def switch_player(self):
         # Increment rounds for the leaving player
@@ -49,6 +52,9 @@ class CricketGame:
         self.current_player = 1 - self.current_player
         self.players[self.current_player].marks_this_round = 0
         self.players[self.current_player].sectors_hit_this_round.clear()
+        # Reset current round sector hits for the new player
+        for sector in self.players[self.current_player].current_round_sector_hits:
+            self.players[self.current_player].current_round_sector_hits[sector] = 0
         self.players[self.current_player].mpr = self.players[self.current_player].calculate_mpr()
         
     def add_hit(self, sector, hits=1):
@@ -75,6 +81,7 @@ class CricketGame:
             current.sectors[sector] += 1
             current.marks_this_round += 1
             current.sectors_hit_this_round.add(sector)
+            current.current_round_sector_hits[sector] += 1
         else:
             # Sector is already open (has 3 marks)
             current.marks_this_round += 1
@@ -84,6 +91,7 @@ class CricketGame:
                 current.sectors[sector] += 1
                 current.score += points
                 current.sectors_hit_this_round.add(sector)
+                current.current_round_sector_hits[sector] += 1
 
         # Update MPR after the hit
         current.mpr = current.calculate_mpr()
@@ -120,19 +128,32 @@ class SectorButton(Button):
 class SectorIndicator(BoxLayout):
     sector = StringProperty('')
     hits = NumericProperty(0)
+    current_round_hits = NumericProperty(0)  # New property for current round hits
 
-    def update_marks(self, hits):
+    def update_marks(self, hits, current_round_hits=0):
         """Update the visual marks to show the number of hits"""
         self.hits = hits
-        mark_widgets = [self.ids.mark1, self.ids.mark2, self.ids.mark3]
+        self.current_round_hits = current_round_hits
+        
+        # Get mark widgets
+        mark1 = self.ids.get('mark1')
+        mark2 = self.ids.get('mark2')
+        mark3 = self.ids.get('mark3')
+        mark_widgets = [mark1, mark2, mark3]
         
         for i, mark in enumerate(mark_widgets):
             if i < hits:
                 mark.text = '✓'  # check mark for hit
                 mark.color = (0.2, 0.8, 0.2, 1)  # Bright green for contrast
             else:
-                mark.text = '_'  # Underscore for empty
+                mark.text = '-'  # Underscore for empty
                 mark.color = (0.4, 0.4, 0.4, 1)  # Dark gray
+
+        # Update dots display
+        dots = '•' * current_round_hits
+        # Add space after every 3 dots
+        dots = ' '.join(dots[i:i+3] for i in range(0, len(dots), 3))
+        self.ids.dots_label.text = dots
 
 class DataInputScreen(Screen):
     def __init__(self, **kwargs):
@@ -373,9 +394,12 @@ class GameScreen(Screen):
             else:
                 self.sector_buttons[sector].sector_state = 'normal'  # Sector is not open for either player
             
-            # Update scoring indicators
-            self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector])
-            self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector])
+            # Update scoring indicators with current round hits per sector
+            p1_current_hits = self.game.players[0].current_round_sector_hits[sector]
+            p2_current_hits = self.game.players[1].current_round_sector_hits[sector]
+            
+            self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
+            self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
 
 class DartsCricketApp(App):
     def build(self):

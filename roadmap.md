@@ -5,7 +5,7 @@ v   ) make the fonts larger
 v   ) the diff label must become 90% white 10% grayed
 
 
-    ) add vusual hit counter in sectors with dots, for current round only
+v   ) add vusual hit counter in sectors with dots, for current round only
 
 
 v   ) the game counts the rounds
