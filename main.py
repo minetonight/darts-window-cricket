@@ -1,12 +1,8 @@
 from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
-from kivy.uix.label import Label
-from kivy.uix.gridlayout import GridLayout
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.properties import ListProperty, NumericProperty, BooleanProperty, StringProperty, ColorProperty
-from kivy.metrics import dp
-from kivy.graphics import Color, Rectangle, Line
+from kivy.properties import NumericProperty, StringProperty, ColorProperty
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -143,10 +139,10 @@ class SectorIndicator(BoxLayout):
         
         for i, mark in enumerate(mark_widgets):
             if i < hits:
-                mark.text = '✓'  # check mark for hit
+                mark.text = 'V'  # check mark for hit
                 mark.color = (0.2, 0.8, 0.2, 1)  # Bright green for contrast
             else:
-                mark.text = '-'  # Underscore for empty
+                mark.text = '-'  # dash for empty
                 mark.color = (0.4, 0.4, 0.4, 1)  # Dark gray
 
         # Update dots display

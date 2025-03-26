@@ -12,15 +12,27 @@ v   ) the game counts the rounds
 v   ) the game shows the mpr marks per round next to the diff for each player 
 v   )) just the layout
 
-    ) implement undo last mark button and undo last round button
-v   )) just the layout
-    )) When you want to implement their functionality, we can add the appropriate methods in the GameScreen class and connect them to the buttons using the on_release event.
-    )) keep in memory the order of the marks and create undo buttons
-    ))) make sure the mpr and rounds are calculated accurately from that memory after undos
+    ) implement undo last mark button 
+    )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
+    )) keep 2d arrays in memory with single marks with the order of the marks for each round 
+    )) add_hit fills the arrays for the current round
+    ))) make sure the mpr is calculated accurately from that memory after undos
+    ))) update the all current round variables when a mark is undone
+    
+    ) implement undo last round button
+    )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
+    )) undo all marks for the current player in the current round
+    )) then undo all marks from the last round of the previous player
+    )) track the rounds changes backwards and update accordingly
+    )) visually and internally switch back to the previous player
+    )) the previous player round start from scratch
 
     ) save the game history in file at the end of each game - 'player name 1 vs player name 2 on date'.txt
     )) the text file contains alternating lines with each player name and score for each round
     )) if there is history file, load the players names from the file in the data input screen
+
+    ) replay game function
+    )) from history file, call functions that add marks and switch players
 
 v   ) add ScreenManager and two Screens: data input and game screen
 v   )) text input sets player 1 and player 2 names
