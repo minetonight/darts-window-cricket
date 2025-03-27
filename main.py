@@ -15,7 +15,7 @@ class Player:
         self.marks_this_round = 0  # Total marks made this round
         self.sectors_hit_this_round = set()  # Set of sectors hit in current round
         self.current_round_sector_hits = {}  # Track hits per sector in current round
-        self.mpr = 1.0
+        self.mpr = 0.0
         self.rounds = 1  # Add rounds counter
 
     def calculate_mpr(self):
@@ -139,7 +139,7 @@ class SectorIndicator(BoxLayout):
         
         for i, mark in enumerate(mark_widgets):
             if i < hits:
-                mark.text = 'V'  # check mark for hit
+                mark.text = '✓'  # check mark for hit
                 mark.color = (0.2, 0.8, 0.2, 1)  # Bright green for contrast
             else:
                 mark.text = '-'  # dash for empty
@@ -336,8 +336,8 @@ class GameScreen(Screen):
         self.ids.player2_name.text = self.game.players[1].name
         self.ids.player1_score.text = str(self.game.players[0].score)
         self.ids.player2_score.text = str(self.game.players[1].score)
-        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.1f}"
-        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.1f}"
+        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.2f}"
+        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.2f}"
        
         # Update rounds display
         self.ids.rounds.text = f"R: {self.game.players[1].rounds}"
@@ -351,10 +351,6 @@ class GameScreen(Screen):
         # Format diffs with brackets and explicit sign
         self.ids.player1_diff.text = f"({'+' if p1_diff > 0 else '-' if p1_diff == 0 else ''}{p1_diff})"
         self.ids.player2_diff.text = f"({'+' if p2_diff > 0 else '-' if p2_diff == 0 else ''}{p2_diff})"
-
-        # Update MPR displays
-        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.1f}"
-        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.1f}"
         
         # Update player backgrounds based on current player (dark theme)
         p1_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 0 else [0.18, 0.18, 0.18, 1]

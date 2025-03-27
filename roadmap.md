@@ -3,13 +3,14 @@ v   )) change the background color to something dark and update all the text col
 v   ) add font and nice checks for marks
 v   ) make the fonts larger
 v   ) the diff label must become 90% white 10% grayed
-
+v   ) setup nice fonts
 
 v   ) add vusual hit counter in sectors with dots, for current round only
 
 
 v   ) the game counts the rounds
 v   ) the game shows the mpr marks per round next to the diff for each player 
+    )) mpr is with 2 decimals: 1.92, not 1.9
 v   )) just the layout
 
     ) implement undo last mark button 
