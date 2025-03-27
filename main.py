@@ -40,10 +40,19 @@ class CricketGame:
             player.sectors['Bull'] = 0
             player.current_round_sector_hits = {str(i): 0 for i in range(lowest_sector, highest_sector + 1)}
             player.current_round_sector_hits['Bull'] = 0
-
+            
+        # Initialize mark history tracking
+        self.mark_history = []  # List of rounds
+        self.current_round_marks = []  # List of marks in current round
+        self.current_round_marks.append([])  # Initialize first round
+    
     def switch_player(self):
         # Increment rounds for the leaving player
         self.players[self.current_player].rounds += 1
+        
+        # Save current round marks to history and start new round
+        self.mark_history.append(self.current_round_marks[-1])  # Always store the round, even if empty
+        self.current_round_marks.append([])  # Start new round
         
         self.current_player = 1 - self.current_player
         self.players[self.current_player].marks_this_round = 0
@@ -72,6 +81,15 @@ class CricketGame:
         if len(current.sectors_hit_this_round) >= 3 and sector not in current.sectors_hit_this_round:
             return False
         
+        # Record the mark before making changes
+        mark_info = {
+            'player': self.current_player,
+            'sector': sector,
+            'was_scoring': current.sectors[sector] >= 3 and opponent.sectors[sector] < 3,
+            'points': self.bull_points if sector == 'Bull' else int(sector) if current.sectors[sector] >= 3 and opponent.sectors[sector] < 3 else 0
+        }
+        self.current_round_marks[-1].append(mark_info)
+        
         # Update hits for the sector
         if current.sectors[sector] < 3:
             current.sectors[sector] += 1
@@ -92,6 +110,34 @@ class CricketGame:
         # Update MPR after the hit
         current.mpr = current.calculate_mpr()
         return True
+
+    def undo_last_mark(self):
+        if not self.current_round_marks or not self.current_round_marks[-1]:
+            return False
+            
+        # Get the last mark
+        last_mark = self.current_round_marks[-1].pop()
+        current = self.players[last_mark['player']]
+        sector = last_mark['sector']
+        
+        # Undo the mark
+        if current.sectors[sector] > 0:
+            current.sectors[sector] -= 1
+            current.marks_this_round -= 1
+            current.current_round_sector_hits[sector] -= 1
+            
+            # If this was the last hit in this sector for this round, remove from sectors_hit_this_round
+            if current.current_round_sector_hits[sector] == 0:
+                current.sectors_hit_this_round.discard(sector)
+            
+            # If this was a scoring hit, remove the points
+            if last_mark['was_scoring']:
+                current.score -= last_mark['points']
+        
+        # Update MPR after the undo
+        current.mpr = current.calculate_mpr()
+        return True
+
 
     def check_game_over(self):
         for player in self.players:
@@ -392,6 +438,14 @@ class GameScreen(Screen):
             
             self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
             self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
+
+    def undo_last_mark(self, *args):
+        """Handle undo last mark button press"""
+        if not self.game:
+            return
+            
+        if self.game.undo_last_mark():
+            self.update_display()
 
 class DartsCricketApp(App):
     def build(self):
