@@ -7,6 +7,7 @@ from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from game_history import GameHistory
 import json
 import os
+from kivy.clock import Clock
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -388,6 +389,237 @@ class HistoryScreen(Screen):
             )
             popup.open()
 
+    def replay_selected_file(self):
+        """Replay the selected game file"""
+        if self.selected_index is None:
+            return
+            
+        try:
+            selected_file = self.ids.history_list.data[self.selected_index]['text']
+            filepath = os.path.join(self.game_history.base_dir, selected_file)
+            
+            with open(filepath, 'r') as f:
+                game_data = json.load(f)
+            
+            # Initialize replay screen
+            replay_screen = self.manager.get_screen('replay')
+            replay_screen.initialize_replay(game_data)
+            self.manager.current = 'replay'
+            
+        except Exception as e:
+            # Show error in a popup
+            from kivy.uix.popup import Popup
+            from kivy.uix.label import Label
+            
+            popup = Popup(
+                title='Error',
+                content=Label(text=f'Failed to load replay:\n{str(e)}'),
+                size_hint=(None, None),
+                size=(400, 200)
+            )
+            popup.open()
+
+class ReplayScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game = None
+        self.game_history = GameHistory()
+        self.replay_event = None
+        self.current_round = 0
+        self.current_mark = 0
+        self.is_replaying = False
+        # Initialize dictionaries for sector buttons and indicators
+        self.sector_buttons = {}
+        self.p1_indicators = {}
+        self.p2_indicators = {}
+        # Set initial UI state
+        self.ids.player1_container.background_color = [0.18, 0.18, 0.18, 1]
+        self.ids.player2_container.background_color = [0.18, 0.18, 0.18, 1]
+
+    def initialize_replay(self, game_data):
+        """Initialize a new replay from game data"""
+        # Create a new game instance with the same settings
+        settings = game_data['settings']
+        self.game = CricketGame(
+            game_data['players'][0]['name'],
+            game_data['players'][1]['name'],
+            settings['highest_sector'],
+            settings['lowest_sector'],
+            settings['bull_points']
+        )
+        
+        # Store the history for replay
+        self.game_history = game_data['history']
+        
+        # Initialize the UI
+        self.create_sector_buttons()
+        self.update_display()
+        
+        # Start the replay
+        self.start_replay()
+
+    def start_replay(self):
+        """Start the replay animation"""
+        self.is_replaying = True
+        self.current_round = 0
+        self.current_mark = 0
+        self.replay_event = Clock.schedule_interval(self.replay_next_mark, 1.0)
+        self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
+
+    def stop_replay(self):
+        """Stop the replay and return to data input screen"""
+        if self.replay_event:
+            self.replay_event.cancel()
+        self.manager.current = 'data_input'
+
+    def replay_next_mark(self, dt):
+        """Replay the next mark in the sequence"""
+        if not self.is_replaying or self.current_round >= len(self.game_history):
+            self.stop_replay()
+            return
+
+        current_round = self.game_history[self.current_round]
+        
+        if self.current_mark >= len(current_round):
+            # Move to next round
+            self.current_round += 1
+            self.current_mark = 0
+            if self.current_round < len(self.game_history):
+                self.game.switch_player()
+                self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
+            else:
+                self.stop_replay()
+            return
+
+        # Replay the current mark
+        mark = current_round[self.current_mark]
+        self.game.add_hit(mark['sector'])
+        self.current_mark += 1
+        self.update_display()
+
+    def create_sector_buttons(self):
+        # Clear existing sector buttons
+        game_grid = self.ids.game_grid
+        game_grid.clear_widgets()
+        
+        # Clear old button and indicator references
+        self.sector_buttons.clear()
+        self.p1_indicators.clear()
+        self.p2_indicators.clear()
+        
+        # Add sector buttons in reverse order (highest to lowest)
+        for sector in range(self.game.highest_sector, self.game.lowest_sector - 1, -1):
+            sector_str = str(sector)
+            
+            # Create indicator for player 1
+            p1_indicator = SectorIndicator(sector=sector_str)
+            p1_indicator.id = f'p1_sector_{sector_str}'
+            self.p1_indicators[sector_str] = p1_indicator
+            
+            # Create sector button (disabled during replay)
+            btn = SectorButton(text=sector_str)
+            btn.id = f'btn_sector_{sector_str}'
+            btn.disabled = True
+            self.sector_buttons[sector_str] = btn
+            
+            # Create indicator for player 2
+            p2_indicator = SectorIndicator(sector=sector_str)
+            p2_indicator.id = f'p2_sector_{sector_str}'
+            self.p2_indicators[sector_str] = p2_indicator
+            
+            # Add widgets to grid
+            game_grid.add_widget(p1_indicator)
+            game_grid.add_widget(btn)
+            game_grid.add_widget(p2_indicator)
+        
+        # Add Bull row
+        # Create Bull indicators
+        p1_bull = SectorIndicator(sector='Bull')
+        p1_bull.id = 'p1_sector_bull'
+        self.p1_indicators['Bull'] = p1_bull
+        
+        # Create Bull button (disabled during replay)
+        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points} pts]')
+        bull_btn.id = 'btn_sector_bull'
+        bull_btn.disabled = True
+        self.sector_buttons['Bull'] = bull_btn
+        
+        # Create Bull indicator for player 2
+        p2_bull = SectorIndicator(sector='Bull')
+        p2_bull.id = 'p2_sector_bull'
+        self.p2_indicators['Bull'] = p2_bull
+        
+        # Add Bull widgets to grid
+        game_grid.add_widget(p1_bull)
+        game_grid.add_widget(bull_btn)
+        game_grid.add_widget(p2_bull)
+
+    def update_display(self):
+        if not self.game:
+            return
+
+        # Update player names and scores
+        self.ids.player1_name.text = self.game.players[0].name
+        self.ids.player2_name.text = self.game.players[1].name
+        self.ids.player1_score.text = str(self.game.players[0].score)
+        self.ids.player2_score.text = str(self.game.players[1].score)
+        self.ids.player1_mpr.text = f"MPR: {self.game.players[0].mpr:.2f}"
+        self.ids.player2_mpr.text = f"MPR: {self.game.players[1].mpr:.2f}"
+       
+        # Update rounds display
+        self.ids.rounds.text = f"R: {self.game.players[1].rounds}"
+        
+        # Calculate and update differences
+        p1_score = self.game.players[0].score
+        p2_score = self.game.players[1].score
+        p1_diff = p1_score - p2_score
+        p2_diff = p2_score - p1_score
+        
+        # Format diffs with brackets and explicit sign
+        self.ids.player1_diff.text = f"({'+' if p1_diff > 0 else '-' if p1_diff == 0 else ''}{p1_diff})"
+        self.ids.player2_diff.text = f"({'+' if p2_diff > 0 else '-' if p2_diff == 0 else ''}{p2_diff})"
+        
+        # Update player backgrounds based on current player (dark theme)
+        p1_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 0 else [0.18, 0.18, 0.18, 1]
+        p2_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 1 else [0.18, 0.18, 0.18, 1]
+        
+        # Update container backgrounds using the property
+        self.ids.player1_container.background_color = p1_bg
+        self.ids.player2_container.background_color = p2_bg
+        
+        # Update sector buttons and indicators
+        current = self.game.current_player
+        opponent = 1 - current
+        
+        # Create list of all sectors including Bull
+        sectors = [str(i) for i in range(self.game.highest_sector, self.game.lowest_sector - 1, -1)]
+        sectors.append('Bull')
+        
+        # Update all sector buttons and indicators in a single iteration
+        for sector in sectors:
+            if sector not in self.sector_buttons:
+                continue
+                
+            current_hits = self.game.players[current].sectors[sector]
+            opponent_hits = self.game.players[opponent].sectors[sector]
+            
+            # Update button state from current player's perspective
+            if current_hits >= 3 and opponent_hits >= 3:
+                self.sector_buttons[sector].sector_state = 'closed'  # Sector is closed (both players have 3 marks)
+            elif current_hits >= 3 and opponent_hits < 3:
+                self.sector_buttons[sector].sector_state = 'player_open'  # Sector is open for current player
+            elif opponent_hits >= 3 and current_hits < 3:
+                self.sector_buttons[sector].sector_state = 'opponent_open'  # Sector is open for opponent
+            else:
+                self.sector_buttons[sector].sector_state = 'normal'  # Sector is not open for either player
+            
+            # Update scoring indicators with current round hits per sector
+            p1_current_hits = self.game.players[0].current_round_sector_hits[sector]
+            p2_current_hits = self.game.players[1].current_round_sector_hits[sector]
+            
+            self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
+            self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
+
 class DataInputScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -715,6 +947,7 @@ class DartsCricketApp(App):
         sm.add_widget(DataInputScreen(name='data_input'))
         sm.add_widget(GameScreen(name='game'))
         sm.add_widget(HistoryScreen(name='history'))
+        sm.add_widget(ReplayScreen(name='replay'))
         return sm
 
 if __name__ == '__main__':

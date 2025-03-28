@@ -126,26 +126,23 @@
                 height: dp(50)
                 spacing: '10dp'
                 
+                Label:
+                    text: 'History and Replays:'
+                    font_name: 'assets/fonts/Roboto-Bold.ttf'
+                    size_hint_x: 0.8
+                    font_size: '20sp'
+                    halign: 'right'
+
                 Button:
                     text: '📊'
-                    id: 'history'
+                    id: history
                     font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
                     font_size: '24sp'
                     background_normal: ''
                     background_color: (0.3, 0.3, 0.3, 1)
                     color: (0.9, 0.9, 0.9, 1)
-                    size_hint_x: 0.5
+                    size_hint_x: 0.2
                     on_release: root.show_history()
-                
-                Button:
-                    text: '🔄'
-                    id: 'replay'
-                    font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
-                    font_size: '24sp'
-                    background_normal: ''
-                    background_color: (0.3, 0.3, 0.3, 1)
-                    color: (0.9, 0.9, 0.9, 1)
-                    size_hint_x: 0.5
 
             # Player 1 Name
             BoxLayout:
@@ -499,7 +496,7 @@
 
             Button:
                 text: 'Back'
-                size_hint_x: 0.5
+                size_hint_x: 0.33
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)
                 color: (0.9, 0.9, 0.9, 1)
@@ -509,13 +506,23 @@
 
             Button:
                 text: 'Load Game'
-                size_hint_x: 0.5
+                size_hint_x: 0.33
                 background_normal: ''
                 background_color: (0.3, 0.7, 0.3, 1)
                 color: (1, 1, 1, 1)
                 font_size: '18sp'
                 bold: True
                 on_release: root.load_selected_file()
+
+            Button:
+                text: 'Replay'
+                size_hint_x: 0.33
+                background_normal: ''
+                background_color: (0.3, 0.7, 0.3, 1)
+                color: (1, 1, 1, 1)
+                font_size: '18sp'
+                bold: True
+                on_release: root.replay_selected_file()
 
 <HistoryItem@BoxLayout>:
     canvas.before:
@@ -538,4 +545,161 @@
         size_hint_x: 1
         text_size: self.size
         halign: 'left'
-        valign: 'middle' 
+        valign: 'middle'
+
+<ReplayScreen>:
+    canvas.before:
+        Color:
+            rgba: (0.12, 0.12, 0.12, 1)  # Dark background
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '10dp'
+        spacing: '10dp'
+
+        # Undo buttons section
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.1
+            spacing: '10dp'
+
+            Label:
+                text: 'Replay'
+                font_size: '24sp'
+                bold: True
+                size_hint_x: 1
+
+            Button:
+                text: 'Stop'
+                size_hint_x: 0.3
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.3, 0.3, 1)  # Red-ish text
+                font_size: '18sp'
+                bold: True
+                on_release: root.stop_replay()
+
+        # Players header section
+        BoxLayout:
+            orientation: 'horizontal'
+            size_hint_y: 0.15
+            spacing: '10dp'
+
+            # Player 1 section
+            PlayerContainer:
+                id: player1_container
+                orientation: 'vertical'
+                size_hint_x: 0.42
+                canvas.before:
+                    Color:
+                        rgba: self.background_color
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                background_color: (0.18, 0.18, 0.18, 1)
+
+                Label:
+                    id: player1_name
+                    text: 'Player 1'
+                    font_size: '24sp'
+                    bold: True
+                    size_hint_y: 0.4
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.4
+                    
+                    Label:
+                        id: player1_score
+                        text: '0'
+                        font_size: '32sp'
+                        bold: True
+                        size_hint_x: 0.6
+
+                    Label:
+                        id: player1_diff
+                        text: '(-0)'
+                        font_size: '28sp'
+                        bold: True
+                        size_hint_x: 0.4
+
+                Label:
+                    id: player1_mpr
+                    text: 'MPR: 0.0'
+                    font_size: '16sp'
+                    bold: True
+                    size_hint_y: 0.21
+
+            Label:
+                id: rounds
+                text: 'R: 1'
+                font_size: '26sp'
+                bold: True
+                size_hint_x: 0.16
+                background_color: (0.5, 0.5, 0.5, 1)
+
+            # Player 2 section
+            PlayerContainer:
+                id: player2_container
+                orientation: 'vertical'
+                size_hint_x: 0.42
+                canvas.before:
+                    Color:
+                        rgba: self.background_color
+                    Rectangle:
+                        pos: self.pos
+                        size: self.size
+                background_color: (0.18, 0.18, 0.18, 1)
+
+                Label:
+                    id: player2_name
+                    text: 'Player 2'
+                    font_size: '24sp'
+                    bold: True
+                    size_hint_y: 0.4
+
+                BoxLayout:
+                    orientation: 'horizontal'
+                    size_hint_y: 0.4
+                    
+                    Label:
+                        id: player2_score
+                        text: '0'
+                        font_size: '32sp'
+                        bold: True
+                        size_hint_x: 0.6
+
+                    Label:
+                        id: player2_diff
+                        text: '(-0)'
+                        font_size: '28sp'
+                        bold: True
+                        size_hint_x: 0.4
+
+                Label:
+                    id: player2_mpr
+                    text: 'MPR: 0.0'
+                    font_size: '16sp'
+                    bold: True
+                    size_hint_y: 0.21
+
+        # Game Grid
+        GridLayout:
+            id: game_grid
+            cols: 3
+            size_hint_y: 0.7
+            spacing: '5dp'
+            padding: '5dp'
+
+            # Dynamic sector rows will be added here by Python code
+
+        # Progress Label
+        Label:
+            id: progress_label
+            text: ''
+            size_hint_y: 0.05
+            font_size: '16sp'
+            color: (0.9, 0.9, 0.9, 1) 

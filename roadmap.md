@@ -33,9 +33,11 @@ v   )) that files must be accessible in the android memory, set permissions and 
 v   ))) make it work on android
 v   )) the text file contains the marks history data structure serialized in human readable form. ---alternating lines with each player name and score for each round---
 v   )) if there is a history file, load the latest players names from the file to the data input screen
+    )) read history as text in the app
+    
 
-    ) replay game function
-    )) from history file, call functions that add marks and switch players
+v   ) replay game function
+v   )) from history file, call functions that add marks and switch players
 
 v   ) add ScreenManager and two Screens: data input and game screen
 v   )) text input sets player 1 and player 2 names
