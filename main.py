@@ -2,8 +2,11 @@ from kivy.app import App
 from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen
-from kivy.properties import NumericProperty, StringProperty, ColorProperty
+from kivy.properties import NumericProperty, StringProperty, ColorProperty, BooleanProperty
+from kivy.uix.recycleview.views import RecycleDataViewBehavior
 from game_history import GameHistory
+import json
+import os
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -240,6 +243,151 @@ class SectorIndicator(BoxLayout):
         dots = ' '.join(dots[i:i+3] for i in range(0, len(dots), 3))
         self.ids.dots_label.text = dots
 
+class HistoryItem(RecycleDataViewBehavior, BoxLayout):
+    """Add selection support to the Label"""
+    index = None
+    selected = BooleanProperty(False)
+    selectable = BooleanProperty(True)
+    text = StringProperty('')
+
+    def refresh_view_attrs(self, rv, index, data):
+        """Catch and handle the view changes"""
+        self.index = index
+        self.text = data['text']
+        self.selected = data.get('selected', False)
+
+    def on_touch_down(self, touch):
+        """Add selection on touch down"""
+        if super(HistoryItem, self).on_touch_down(touch):
+            return True
+        if self.collide_point(*touch.pos) and self.selectable:
+            # Get the RecycleView parent
+            rv = self.parent.parent
+            # Find the HistoryScreen by traversing up the widget tree
+            parent = rv
+            while parent is not None:
+                if isinstance(parent, HistoryScreen):
+                    return parent.select_with_touch(self.index, touch)
+                parent = parent.parent
+        return False
+
+    def apply_selection(self, rv, index, is_selected):
+        """Respond to the selection of items in the view"""
+        self.selected = is_selected
+        # Find the HistoryScreen by traversing up the widget tree
+        parent = rv
+        while parent is not None:
+            if isinstance(parent, HistoryScreen):
+                parent.selected_index = index if is_selected else None
+                break
+            parent = parent.parent
+
+class HistoryScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_history = GameHistory()
+        self.selected_index = None
+        self.list_history_files()
+
+    def list_history_files(self):
+        """Load the list of game history files"""
+        try:
+            files = [f for f in os.listdir(self.game_history.base_dir) 
+                    if f.endswith('.txt') and f != 'metadata.json']
+            files.sort(reverse=True)  # Most recent first
+            
+            self.ids.history_list.data = [
+                {'text': f, 'selected': False} for f in files
+            ]
+        except Exception as e:
+            # Show error in a popup
+            from kivy.uix.popup import Popup
+            from kivy.uix.label import Label
+            
+            popup = Popup(
+                title='Error',
+                content=Label(text=f'Failed to load history:\n{str(e)}'),
+                size_hint=(None, None),
+                size=(400, 200)
+            )
+            popup.open()
+
+    def select_with_touch(self, index, touch):
+        """Handle selection of items in the RecycleView"""
+        # Deselect all items
+        for item in self.ids.history_list.data:
+            item['selected'] = False
+        
+        # Select the touched item
+        if index is not None:
+            self.ids.history_list.data[index]['selected'] = True
+            self.selected_index = index
+        
+        # Refresh the view
+        self.ids.history_list.refresh_from_data()
+
+    def load_selected_file(self):
+        """Load the selected game file"""
+        if self.selected_index is None:
+            return
+            
+        try:
+            selected_file = self.ids.history_list.data[self.selected_index]['text']
+            filepath = os.path.join(self.game_history.base_dir, selected_file)
+            
+            with open(filepath, 'r') as f:
+                game_data = json.load(f)
+                
+            # Extract player names
+            player1_name = game_data['players'][0]['name']
+            player2_name = game_data['players'][1]['name']
+            
+            # Extract game settings
+            settings = game_data['settings']
+            highest_sector = settings['highest_sector']
+            lowest_sector = settings['lowest_sector']
+            bull_points = settings['bull_points']
+            
+            # Update the data input screen with these values
+            data_input = self.manager.get_screen('data_input')
+            data_input.ids.player1_name.text = player1_name
+            data_input.ids.player2_name.text = player2_name
+            
+            # Update game settings
+            data_input.ids.highest_sector.text = str(highest_sector)
+            data_input.ids.lowest_sector.text = str(lowest_sector)
+            
+            # Set bull points radio button based on the value
+            if bull_points == highest_sector + 5:
+                data_input.ids.bull_highest_plus_5.state = 'down'
+                data_input.ids.bull_25.state = 'normal'
+            else:
+                data_input.ids.bull_highest_plus_5.state = 'normal'
+                data_input.ids.bull_25.state = 'down'
+            
+            # Update bull points value
+            data_input.bull_points = bull_points
+            
+            # Validate names and update UI
+            data_input.validate_names()
+            data_input.update_lowest_sector()
+            
+            # Return to data input screen
+            self.manager.current = 'data_input'
+            
+        except Exception as e:
+            # Show error in a popup
+            from kivy.uix.popup import Popup
+            from kivy.uix.label import Label
+            
+            popup = Popup(
+                title='Error',
+                content=Label(text=f'Failed to load game:\n{str(e)}'),
+                size_hint=(None, None),
+                size=(400, 200)
+            )
+            popup.open()
+
 class DataInputScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -326,6 +474,10 @@ class DataInputScreen(Screen):
         game_screen = self.manager.get_screen('game')
         game_screen.initialize_game(game)
         self.manager.current = 'game'
+
+    def show_history(self):
+        """Show the history screen"""
+        self.manager.current = 'history'
 
 class GameScreen(Screen):
     def __init__(self, **kwargs):
@@ -562,6 +714,7 @@ class DartsCricketApp(App):
         sm = ScreenManager()
         sm.add_widget(DataInputScreen(name='data_input'))
         sm.add_widget(GameScreen(name='game'))
+        sm.add_widget(HistoryScreen(name='history'))
         return sm
 
 if __name__ == '__main__':
