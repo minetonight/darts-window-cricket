@@ -447,7 +447,9 @@ class GameScreen(Screen):
                 filepath, error = self.game_history.save_game(self.game)
                 if filepath:
                     self.ids.file_messages_label.color = [0, 1, 0, 1] # green
-                    self.ids.file_messages_label.text = f"Game saved to:\n{filepath}"
+                    # make it two lines so it is readable on android
+                    two_line_path = '\n'.join(filepath[i:i+len(filepath)//2] for i in range(0, len(filepath), len(filepath)//2)) 
+                    self.ids.file_messages_label.text = f"Game saved to:{two_line_path}"
                 else:
                     self.ids.file_messages_label.color = [1, 0, 0, 1]
                     self.ids.file_messages_label.text = f"Error saving game:\n{error}"

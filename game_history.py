@@ -8,17 +8,12 @@ class GameHistory:
     def __init__(self):
         # Get the appropriate storage directory based on platform
         if platform == 'android':
-            from android.permissions import request_permissions, Permission
-            from android.storage import primary_external_storage_path
+            from jnius import autoclass
             
-            # Request storage permissions
-            request_permissions([
-                Permission.WRITE_EXTERNAL_STORAGE,
-                Permission.READ_EXTERNAL_STORAGE
-            ])
-            
-            # Use Android's external storage for game history
-            self.base_dir = os.path.join(primary_external_storage_path(), 'WindowCricket')
+            # Get Android's app private storage directory
+            PythonActivity = autoclass('org.kivy.android.PythonActivity')
+            activity = PythonActivity.mActivity
+            self.base_dir = activity.getFilesDir().getAbsolutePath()
         else:
             # For desktop platforms, use a local directory
             self.base_dir = os.path.join(os.path.expanduser('~'), '.window_cricket')

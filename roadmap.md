@@ -29,8 +29,8 @@ v   )) visually and internally switch back to the previous player
 v   )) the previous player round starts with all marks from that round
 
 v   ) save the game history in file at the end of each game - 'player name 1 vs player name 2 on date'.txt
-    )) that files must be accessible in the android memory, set permissions and appropriate file path.
-    ))) make it work on android
+v   )) that files must be accessible in the android memory, set permissions and appropriate file path.
+v   ))) make it work on android
 v   )) the text file contains the marks history data structure serialized in human readable form. ---alternating lines with each player name and score for each round---
 v   )) if there is a history file, load the latest players names from the file to the data input screen
 
