@@ -299,17 +299,20 @@
             spacing: '10dp'
 
             Button:
-                text: 'Undo Prev Throw'
+                text: 'Undo oppnent marks'
+                id: undo_throw_btn
                 size_hint_x: 0.5
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)  # Dark gray to match theme
                 color: (0.9, 0.3, 0.3, 1)  # Red-ish text
                 font_size: '18sp'
                 bold: True
+                on_release: root.undo_last_throw()
+                disabled: True
 
             Button:
-                text: 'Undo a Hit'
-                id: 'undo_mark_btn'
+                text: 'Undo my marks'
+                id: undo_mark_btn
                 size_hint_x: 0.5
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)  # Dark gray to match theme
@@ -317,6 +320,7 @@
                 font_size: '18sp'
                 bold: True
                 on_release: root.undo_last_mark()
+                disabled: True
 
         # Players header section
         BoxLayout:

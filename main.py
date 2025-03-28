@@ -138,6 +138,48 @@ class CricketGame:
         current.mpr = current.calculate_mpr()
         return True
 
+    def undo_last_throw(self):
+        """Undo the current player's entire round and restore previous player's round"""
+        if not self.mark_history or not self.current_round_marks:
+            return False
+            
+        # Get the previous round from history
+        previous_round = self.mark_history.pop()
+        
+        # Undo all marks in current round
+        while self.current_round_marks[-1]:
+            self.undo_last_mark()
+            
+        # Remove the empty current round
+        self.current_round_marks.pop()
+        
+        # Switch back to previous player
+        self.current_player = 1 - self.current_player
+        
+        # Decrement rounds for the current player (since we're going back)
+        self.players[self.current_player].rounds -= 1
+        
+        # Restore previous player's round
+        self.current_round_marks.append(previous_round)
+        
+        # Restore previous player's state
+        current = self.players[self.current_player]
+        current.marks_this_round = len(previous_round)
+        current.sectors_hit_this_round.clear()
+        current.current_round_sector_hits = {str(i): 0 for i in range(self.lowest_sector, self.highest_sector + 1)}
+        current.current_round_sector_hits['Bull'] = 0
+        
+        # Restore sector hits and scores from previous round
+        for mark in previous_round:
+            sector = mark['sector']
+            current.current_round_sector_hits[sector] += 1
+            current.sectors_hit_this_round.add(sector)
+            if mark['was_scoring']:
+                current.score += mark['points']
+        
+        # Update MPR
+        current.mpr = current.calculate_mpr()
+        return True
 
     def check_game_over(self):
         for player in self.players:
@@ -386,6 +428,21 @@ class GameScreen(Screen):
                 # Update next player button text
                 self.ids.next_player_btn.text = f"{winner.name} wins!\nNew Game?"
 
+    def update_undo_button_states(self):
+        """Update the enabled/disabled state of undo buttons based on game state"""
+        if not self.game:
+            self.ids.undo_mark_btn.disabled = True
+            self.ids.undo_throw_btn.disabled = True
+            return
+
+        # Enable/disable Undo a Hit button based on current round marks
+        has_current_marks = bool(self.game.current_round_marks and self.game.current_round_marks[-1])
+        self.ids.undo_mark_btn.disabled = not has_current_marks
+
+        # Enable/disable Undo Prev Throw button based on history
+        has_previous_rounds = bool(self.game.mark_history)
+        self.ids.undo_throw_btn.disabled = not has_previous_rounds
+
     def update_display(self):
         if not self.game:
             return
@@ -451,6 +508,11 @@ class GameScreen(Screen):
             
             self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
             self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
+            
+        # Update undo button states
+        self.ids.undo_mark_btn.text = f"Undo {self.game.players[self.game.current_player].name}'s marks"
+        self.ids.undo_throw_btn.text = f"Undo {self.game.players[1-self.game.current_player].name}'s marks"
+        self.update_undo_button_states()
 
     def undo_last_mark(self, *args):
         """Handle undo last mark button press"""
@@ -458,6 +520,14 @@ class GameScreen(Screen):
             return
             
         if self.game.undo_last_mark():
+            self.update_display()
+
+    def undo_last_throw(self, *args):
+        """Handle undo last throw button press"""
+        if not self.game:
+            return
+            
+        if self.game.undo_last_throw():
             self.update_display()
 
 class DartsCricketApp(App):
