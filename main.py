@@ -202,10 +202,23 @@ class DataInputScreen(Screen):
         super().__init__(**kwargs)
         self.bull_points = 25  # Default value
 
+    def is_valid_sector_range(self, highest, lowest):
+        """Check if the sectors from highest to lowest not are adjacent on the dart board
+        Heuristically we know that the sectors from 16 to 10 contain adjacent sectors"""
+        
+        return not (9 < highest < 17)
+
     def update_lowest_sector(self):
         highest = int(self.ids.highest_sector.text)
         lowest = highest - 5
         self.ids.lowest_sector.text = str(lowest)
+        
+        # Validate sector range using adjacency check
+        if not self.is_valid_sector_range(highest, lowest):
+            self.ids.sector_warning.text = "Warning: Adjacent sectors on the board: 6, 10, 8, 11, 14"
+        else:
+            self.ids.sector_warning.text = ""
+            
         self.update_bull_points()
 
     def update_bull_points(self):
@@ -322,7 +335,7 @@ class GameScreen(Screen):
         self.p1_indicators['Bull'] = p1_bull
         
         # Create Bull button
-        bull_btn = SectorButton(text=f'Bull[{self.game.bull_points} pts]')
+        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points} pts]')
         bull_btn.id = 'btn_sector_bull'
         bull_btn.bind(on_release=lambda x: self.on_sector_press('Bull'))
         self.sector_buttons['Bull'] = bull_btn
