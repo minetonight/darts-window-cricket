@@ -8,6 +8,10 @@ from game_history import GameHistory
 import json
 import os
 from kivy.clock import Clock
+from kivy.uix.scrollview import ScrollView
+from kivy.uix.label import Label
+from kivy.uix.popup import Popup
+from kivy.metrics import dp
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -283,6 +287,172 @@ class HistoryItem(RecycleDataViewBehavior, BoxLayout):
                 break
             parent = parent.parent
 
+class GameHistoryPopup(BoxLayout):
+    def __init__(self, game_data, **kwargs):
+        super().__init__(**kwargs)
+        self.orientation = 'vertical'
+        self.padding = dp(10)
+        self.spacing = dp(5)
+        
+        # Add game info header
+        header = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
+        
+        # Player names and settings
+        players = game_data['players']
+        settings = game_data['settings']
+        header.add_widget(Label(
+            text=f"{players[0]['name']} vs {players[1]['name']}",
+            size_hint_y=None,
+            height=dp(30),
+            font_size='20sp',
+            bold=True
+        ))
+        header.add_widget(Label(
+            text=f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}",
+            size_hint_y=None,
+            height=dp(30),
+            font_size='16sp'
+        ))
+        header.add_widget(Label(
+            text=f"Bull Points: {settings['bull_points']}",
+            size_hint_y=None,
+            height=dp(30),
+            font_size='16sp'
+        ))
+        
+        self.add_widget(header)
+        
+        # Create scrollable history
+        scroll = ScrollView(size_hint=(1, 1))
+        history_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
+        history_layout.bind(minimum_height=history_layout.setter('height'))
+        
+        # Add round history
+        for round_num, round_marks in enumerate(game_data['history'], 1):
+            round_box = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
+            
+            # Round header
+            round_header = Label(
+                text=f"Round {round_num}",
+                size_hint_y=None,
+                height=dp(30),
+                font_size='18sp',
+                bold=True
+            )
+            round_box.add_widget(round_header)
+            
+            # Marks in this round
+            marks_text = ""
+            for mark in round_marks:
+                player = players[mark['player']]['name']
+                sector = mark['sector']
+                points = mark['points']
+                marks_text += f"{player}: {sector}"
+                if points > 0:
+                    marks_text += f" (+{points})"
+                marks_text += "\n"
+            
+            round_box.add_widget(Label(
+                text=marks_text,
+                size_hint_y=None,
+                height=dp(70),
+                font_size='16sp'
+            ))
+            
+            history_layout.add_widget(round_box)
+        
+        scroll.add_widget(history_layout)
+        self.add_widget(scroll)
+
+class GameHistoryViewScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_data = None
+
+    def initialize_view(self, game_data):
+        """Initialize the view with game data"""
+        self.game_data = game_data
+        players = game_data['players']
+        settings = game_data['settings']
+        
+        # Update header information
+        self.ids.game_title.text = f"{players[0]['name']} vs {players[1]['name']}"
+        self.ids.game_settings.text = f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}"
+        self.ids.game_bull.text = f"Bull Points: {settings['bull_points']}"
+        
+        # Clear existing history
+        history_layout = self.ids.history_layout
+        history_layout.clear_widgets()
+        
+        # Add round history
+        for round_num, round_marks in enumerate(game_data['history'], 1):
+            round_box = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
+            
+            # Round header
+            round_header = Label(
+                text=f"Round {round_num}",
+                size_hint_y=None,
+                height=dp(30),
+                font_size='18sp',
+                bold=True
+            )
+            round_box.add_widget(round_header)
+            
+            # Marks in this round
+            marks_text = ""
+            for mark in round_marks:
+                player = players[mark['player']]['name']
+                sector = mark['sector']
+                points = mark['points']
+                marks_text += f"{player}: {sector}"
+                if points > 0:
+                    marks_text += f" (+{points})"
+                marks_text += "\n"
+            
+            round_box.add_widget(Label(
+                text=marks_text,
+                size_hint_y=None,
+                height=dp(70),
+                font_size='16sp'
+            ))
+            
+            history_layout.add_widget(round_box)
+
+class GameHistoryTextScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_data = None
+
+    def initialize_view(self, game_data):
+        """Initialize the view with game data"""
+        self.game_data = game_data
+        players = game_data['players']
+        settings = game_data['settings']
+        
+        # Build the history text
+        text = []
+        
+        # Add game info header
+        text.append(f"{players[0]['name']} vs {players[1]['name']}")
+        text.append(f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}")
+        text.append(f"Bull Points: {settings['bull_points']}")
+        text.append("")  # Empty line for spacing
+        
+        # Add round history
+        for round_num, round_marks in enumerate(game_data['history'], 1):
+            text.append(f"Round {round_num}")
+            for mark in round_marks:
+                player = players[mark['player']]['name']
+                sector = mark['sector']
+                points = mark['points']
+                text.append(f"  {player}: {sector}")
+                if points > 0:
+                    text.append(f"    (+{points} points)")
+            text.append("")  # Empty line between rounds
+        
+        # Update the text widget
+        self.ids.history_text.text = "\n".join(text)
+
 class HistoryScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -328,7 +498,7 @@ class HistoryScreen(Screen):
         self.ids.history_list.refresh_from_data()
 
     def load_selected_file(self):
-        """Load the selected game file"""
+        """Load the selected game file and show history in a text screen"""
         if self.selected_index is None:
             return
             
@@ -338,49 +508,14 @@ class HistoryScreen(Screen):
             
             with open(filepath, 'r') as f:
                 game_data = json.load(f)
-                
-            # Extract player names
-            player1_name = game_data['players'][0]['name']
-            player2_name = game_data['players'][1]['name']
             
-            # Extract game settings
-            settings = game_data['settings']
-            highest_sector = settings['highest_sector']
-            lowest_sector = settings['lowest_sector']
-            bull_points = settings['bull_points']
-            
-            # Update the data input screen with these values
-            data_input = self.manager.get_screen('data_input')
-            data_input.ids.player1_name.text = player1_name
-            data_input.ids.player2_name.text = player2_name
-            
-            # Update game settings
-            data_input.ids.highest_sector.text = str(highest_sector)
-            data_input.ids.lowest_sector.text = str(lowest_sector)
-            
-            # Set bull points radio button based on the value
-            if bull_points == highest_sector + 5:
-                data_input.ids.bull_highest_plus_5.state = 'down'
-                data_input.ids.bull_25.state = 'normal'
-            else:
-                data_input.ids.bull_highest_plus_5.state = 'normal'
-                data_input.ids.bull_25.state = 'down'
-            
-            # Update bull points value
-            data_input.bull_points = bull_points
-            
-            # Validate names and update UI
-            data_input.validate_names()
-            data_input.update_lowest_sector()
-            
-            # Return to data input screen
-            self.manager.current = 'data_input'
+            # Initialize and show history text screen
+            history_text = self.manager.get_screen('history_text')
+            history_text.initialize_view(game_data)
+            self.manager.current = 'history_text'
             
         except Exception as e:
             # Show error in a popup
-            from kivy.uix.popup import Popup
-            from kivy.uix.label import Label
-            
             popup = Popup(
                 title='Error',
                 content=Label(text=f'Failed to load game:\n{str(e)}'),
@@ -948,6 +1083,8 @@ class DartsCricketApp(App):
         sm.add_widget(GameScreen(name='game'))
         sm.add_widget(HistoryScreen(name='history'))
         sm.add_widget(ReplayScreen(name='replay'))
+        sm.add_widget(GameHistoryViewScreen(name='history_view'))
+        sm.add_widget(GameHistoryTextScreen(name='history_text'))
         return sm
 
 if __name__ == '__main__':

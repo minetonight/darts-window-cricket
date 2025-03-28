@@ -10,7 +10,7 @@ v   ) add vusual hit counter in sectors with dots, for current round only
 
 v   ) the game counts the rounds
 v   ) the game shows the mpr marks per round next to the diff for each player 
-    )) mpr is with 2 decimals: 1.92, not 1.9
+v   )) mpr is with 2 decimals: 1.92, not 1.9
 v   )) just the layout
 
 v   ) implement undo last mark button 
@@ -33,8 +33,10 @@ v   )) that files must be accessible in the android memory, set permissions and 
 v   ))) make it work on android
 v   )) the text file contains the marks history data structure serialized in human readable form. ---alternating lines with each player name and score for each round---
 v   )) if there is a history file, load the latest players names from the file to the data input screen
-    )) read history as text in the app
-    
+v   )) read history as text in the app
+    )) export game files
+     - paste bin?
+     - google drive?
 
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players

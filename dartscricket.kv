@@ -505,7 +505,7 @@
                 on_release: root.manager.current = 'data_input'
 
             Button:
-                text: 'Load Game'
+                text: 'Read Text'
                 size_hint_x: 0.33
                 background_normal: ''
                 background_color: (0.3, 0.7, 0.3, 1)
@@ -702,4 +702,97 @@
             text: ''
             size_hint_y: 0.05
             font_size: '16sp'
-            color: (0.9, 0.9, 0.9, 1) 
+            color: (0.9, 0.9, 0.9, 1)
+
+<GameHistoryViewScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '10dp'
+        spacing: '5dp'
+        
+        # Header with game info
+        BoxLayout:
+            orientation: 'vertical'
+            size_hint_y: None
+            height: dp(100)
+            
+            Label:
+                id: game_title
+                text: ''
+                size_hint_y: None
+                height: dp(30)
+                font_size: '20sp'
+                bold: True
+            
+            Label:
+                id: game_settings
+                text: ''
+                size_hint_y: None
+                height: dp(30)
+                font_size: '16sp'
+            
+            Label:
+                id: game_bull
+                text: ''
+                size_hint_y: None
+                height: dp(30)
+                font_size: '16sp'
+        
+        # Scrollable history
+        ScrollView:
+            size_hint_y: 1
+            
+            BoxLayout:
+                id: history_layout
+                orientation: 'vertical'
+                size_hint_y: None
+                spacing: dp(5)
+                padding: dp(5)
+        
+        # Back button
+        Button:
+            text: 'Back'
+            size_hint_y: None
+            height: dp(50)
+            background_normal: ''
+            background_color: (0.3, 0.3, 0.3, 1)
+            color: (0.9, 0.9, 0.9, 1)
+            font_size: '18sp'
+            bold: True
+            on_release: root.manager.current = 'history'
+
+<GameHistoryTextScreen>:
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '10dp'
+        spacing: '10dp'
+
+        Label:
+            text: 'Game History'
+            font_size: '24sp'
+            bold: True
+            size_hint_y: 0.1
+
+        ScrollView:
+            size_hint_y: 0.8
+            
+            Label:
+                id: history_text
+                text: ''
+                font_size: '16sp'
+                size_hint_y: None
+                height: self.texture_size[1] # key for scrolling
+                text_size: self.width, None
+                halign: 'left'
+                valign: 'top'
+                padding: '10dp'
+
+        Button:
+            text: 'Back'
+            size_hint_y: 0.1
+            background_normal: ''
+            background_color: (0.3, 0.3, 0.3, 1)
+            color: (0.9, 0.9, 0.9, 1)
+            font_size: '18sp'
+            bold: True
+            on_release: root.manager.current = 'history' 
