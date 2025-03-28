@@ -13,24 +13,26 @@ v   ) the game shows the mpr marks per round next to the diff for each player
     )) mpr is with 2 decimals: 1.92, not 1.9
 v   )) just the layout
 
-    ) implement undo last mark button 
-    )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
-    )) keep 2d arrays in memory with single marks with the order of the marks for each round 
-    )) add_hit fills the arrays for the current round
-    ))) make sure the mpr is calculated accurately from that memory after undos
-    ))) update the all current round variables when a mark is undone
+v   ) implement undo last mark button 
+v   )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
+v   )) keep smth in memory with single marks with the order of the marks for each round 
+v   )) add_hit fills the arrays for the current round
+v   ))) make sure the mpr is calculated accurately from that memory after undos
+v   ))) update the all current round variables when a mark is undone
     
-    ) implement undo last round button
-    )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
-    )) undo all marks for the current player in the current round
-    )) then undo all marks from the last round of the previous player
-    )) track the rounds changes backwards and update accordingly
-    )) visually and internally switch back to the previous player
-    )) the previous player round start from scratch
+v   ) implement undo last round button
+v   )) add the appropriate method in the GameScreen class and connect them to the button using the on_release event.
+v   )) undo all marks for the current player in the current round
+v   )) then undo all marks from the last round of the previous player
+v   )) track the rounds changes backwards and update accordingly
+v   )) visually and internally switch back to the previous player
+v   )) the previous player round starts with all marks from that round
 
-    ) save the game history in file at the end of each game - 'player name 1 vs player name 2 on date'.txt
-    )) the text file contains alternating lines with each player name and score for each round
-    )) if there is history file, load the players names from the file in the data input screen
+v   ) save the game history in file at the end of each game - 'player name 1 vs player name 2 on date'.txt
+    )) that files must be accessible in the android memory, set permissions and appropriate file path.
+    ))) make it work on android
+v   )) the text file contains the marks history data structure serialized in human readable form. ---alternating lines with each player name and score for each round---
+v   )) if there is a history file, load the latest players names from the file to the data input screen
 
     ) replay game function
     )) from history file, call functions that add marks and switch players

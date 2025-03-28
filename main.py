@@ -3,6 +3,7 @@ from kivy.uix.boxlayout import BoxLayout
 from kivy.uix.button import Button
 from kivy.uix.screenmanager import ScreenManager, Screen
 from kivy.properties import NumericProperty, StringProperty, ColorProperty
+from game_history import GameHistory
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -243,6 +244,16 @@ class DataInputScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.bull_points = 25  # Default value
+        self.game_history = GameHistory()
+        self.load_latest_players()
+
+    def load_latest_players(self):
+        """Load the latest player names from history"""
+        player1_name, player2_name = self.game_history.get_latest_players()
+        if player1_name and player2_name:
+            self.ids.player1_name.text = player1_name
+            self.ids.player2_name.text = player2_name
+            self.validate_names()  # Update start button state
 
     def is_valid_sector_range(self, highest, lowest):
         """Check if the sectors from highest to lowest not are adjacent on the dart board
@@ -320,6 +331,7 @@ class GameScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game = None
+        self.game_history = GameHistory()
         # Initialize dictionaries for sector buttons and indicators
         self.sector_buttons = {}
         self.p1_indicators = {}
@@ -410,6 +422,7 @@ class GameScreen(Screen):
         if self.game.game_over:
             # Return to data input screen
             self.ids.next_player_btn.text = "Next Player" # reset button text
+            self.ids.file_messages_label.text = ""
             self.manager.current = 'data_input'
             return
         else:    
@@ -427,6 +440,18 @@ class GameScreen(Screen):
                 self.ids.player2_container.background_color = [0.8, 0.7, 0.2, 1] if winner_idx == 1 else [0.6, 0.4, 0.2, 1]
                 # Update next player button text
                 self.ids.next_player_btn.text = f"{winner.name} wins!\nNew Game?"
+                self.ids.undo_mark_btn.disabled = True
+                self.ids.undo_throw_btn.disabled = True
+
+                 # Save game history
+                filepath, error = self.game_history.save_game(self.game)
+                if filepath:
+                    self.ids.file_messages_label.color = [0, 1, 0, 1] # green
+                    self.ids.file_messages_label.text = f"Game saved to:\n{filepath}"
+                else:
+                    self.ids.file_messages_label.color = [1, 0, 0, 1]
+                    self.ids.file_messages_label.text = f"Error saving game:\n{error}"
+                return  
 
     def update_undo_button_states(self):
         """Update the enabled/disabled state of undo buttons based on game state"""
