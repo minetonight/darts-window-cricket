@@ -34,9 +34,8 @@ v   ))) make it work on android
 v   )) the text file contains the marks history data structure serialized in human readable form. ---alternating lines with each player name and score for each round---
 v   )) if there is a history file, load the latest players names from the file to the data input screen
 v   )) read history as text in the app
-    )) export game files
-     - paste bin?
-     - google drive?
+v   )) files are sorted by modification time
+v   )) export game files locally
 
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players

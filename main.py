@@ -12,6 +12,9 @@ from kivy.uix.scrollview import ScrollView
 from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.metrics import dp
+import zipfile
+from datetime import datetime
+from kivy.utils import platform
 
 class PlayerContainer(BoxLayout):
     background_color = ColorProperty([0.18, 0.18, 0.18, 1])  # Default dark gray
@@ -287,83 +290,6 @@ class HistoryItem(RecycleDataViewBehavior, BoxLayout):
                 break
             parent = parent.parent
 
-class GameHistoryPopup(BoxLayout):
-    def __init__(self, game_data, **kwargs):
-        super().__init__(**kwargs)
-        self.orientation = 'vertical'
-        self.padding = dp(10)
-        self.spacing = dp(5)
-        
-        # Add game info header
-        header = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
-        
-        # Player names and settings
-        players = game_data['players']
-        settings = game_data['settings']
-        header.add_widget(Label(
-            text=f"{players[0]['name']} vs {players[1]['name']}",
-            size_hint_y=None,
-            height=dp(30),
-            font_size='20sp',
-            bold=True
-        ))
-        header.add_widget(Label(
-            text=f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}",
-            size_hint_y=None,
-            height=dp(30),
-            font_size='16sp'
-        ))
-        header.add_widget(Label(
-            text=f"Bull Points: {settings['bull_points']}",
-            size_hint_y=None,
-            height=dp(30),
-            font_size='16sp'
-        ))
-        
-        self.add_widget(header)
-        
-        # Create scrollable history
-        scroll = ScrollView(size_hint=(1, 1))
-        history_layout = BoxLayout(orientation='vertical', size_hint_y=None, spacing=dp(5))
-        history_layout.bind(minimum_height=history_layout.setter('height'))
-        
-        # Add round history
-        for round_num, round_marks in enumerate(game_data['history'], 1):
-            round_box = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
-            
-            # Round header
-            round_header = Label(
-                text=f"Round {round_num}",
-                size_hint_y=None,
-                height=dp(30),
-                font_size='18sp',
-                bold=True
-            )
-            round_box.add_widget(round_header)
-            
-            # Marks in this round
-            marks_text = ""
-            for mark in round_marks:
-                player = players[mark['player']]['name']
-                sector = mark['sector']
-                points = mark['points']
-                marks_text += f"{player}: {sector}"
-                if points > 0:
-                    marks_text += f" (+{points})"
-                marks_text += "\n"
-            
-            round_box.add_widget(Label(
-                text=marks_text,
-                size_hint_y=None,
-                height=dp(70),
-                font_size='16sp'
-            ))
-            
-            history_layout.add_widget(round_box)
-        
-        scroll.add_widget(history_layout)
-        self.add_widget(scroll)
-
 class GameHistoryViewScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -454,34 +380,39 @@ class GameHistoryTextScreen(Screen):
         self.ids.history_text.text = "\n".join(text)
 
 class HistoryScreen(Screen):
+    popup_text = StringProperty('')  # Add this property for popup text
+
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game_history = GameHistory()
         self.selected_index = None
-        self.list_history_files()
+
+    def show_popup(self, title, message):
+        """Show a popup with the given message"""
+        self.popup_text = message
+        self.ids.popup.title = title
+        self.ids.popup.open()
 
     def list_history_files(self):
         """Load the list of game history files"""
         try:
-            files = [f for f in os.listdir(self.game_history.base_dir) 
-                    if f.endswith('.txt') and f != 'metadata.json']
-            files.sort(reverse=True)  # Most recent first
+            # Get list of files with their modification times
+            files = []
+            for f in os.listdir(self.game_history.base_dir):
+                if f.endswith('.txt') and f != 'metadata.json':
+                    filepath = os.path.join(self.game_history.base_dir, f)
+                    mtime = os.path.getmtime(filepath)
+                    files.append((f, mtime))
             
+            # Sort by modification time, most recent first
+            files.sort(key=lambda x: x[1], reverse=True)
+            
+            # Extract just the filenames for display
             self.ids.history_list.data = [
-                {'text': f, 'selected': False} for f in files
+                {'text': f[0], 'selected': False} for f in files
             ]
         except Exception as e:
-            # Show error in a popup
-            from kivy.uix.popup import Popup
-            from kivy.uix.label import Label
-            
-            popup = Popup(
-                title='Error',
-                content=Label(text=f'Failed to load history:\n{str(e)}'),
-                size_hint=(None, None),
-                size=(400, 200)
-            )
-            popup.open()
+            self.show_popup('Error', f'Failed to load history:\n{str(e)}')
 
     def select_with_touch(self, index, touch):
         """Handle selection of items in the RecycleView"""
@@ -515,14 +446,7 @@ class HistoryScreen(Screen):
             self.manager.current = 'history_text'
             
         except Exception as e:
-            # Show error in a popup
-            popup = Popup(
-                title='Error',
-                content=Label(text=f'Failed to load game:\n{str(e)}'),
-                size_hint=(None, None),
-                size=(400, 200)
-            )
-            popup.open()
+            self.show_popup('Error', f'Failed to load game:\n{str(e)}')
 
     def replay_selected_file(self):
         """Replay the selected game file"""
@@ -542,17 +466,27 @@ class HistoryScreen(Screen):
             self.manager.current = 'replay'
             
         except Exception as e:
-            # Show error in a popup
-            from kivy.uix.popup import Popup
-            from kivy.uix.label import Label
-            
-            popup = Popup(
-                title='Error',
-                content=Label(text=f'Failed to load replay:\n{str(e)}'),
-                size_hint=(None, None),
-                size=(400, 200)
-            )
-            popup.open()
+            self.show_popup('Error', f'Failed to load replay:\n{str(e)}')
+
+    def export_history(self):
+        """Export game history to a zip file"""
+        zip_path, error = self.game_history.export_history()
+        
+        if zip_path:
+            self.show_popup('Success', f'History exported to:\n{zip_path}')
+        else:
+            self.show_popup('Error', f'Failed to export history:\n{error}')
+
+    def import_history(self):
+        """Import game history from a zip file"""
+        zip_path, error = self.game_history.import_history()
+        
+        if zip_path:
+            # Refresh the history list
+            self.list_history_files()
+            self.show_popup('Success', f'History imported from:\n{zip_path}')
+        else:
+            self.show_popup('Error', f'Failed to import history:\n{error}')
 
 class ReplayScreen(Screen):
     def __init__(self, **kwargs):
@@ -844,6 +778,10 @@ class DataInputScreen(Screen):
 
     def show_history(self):
         """Show the history screen"""
+
+        # refresh the history list every time the history screen is shown
+        historyScreen = self.manager.get_screen('history')
+        historyScreen.list_history_files()
         self.manager.current = 'history'
 
 class GameScreen(Screen):

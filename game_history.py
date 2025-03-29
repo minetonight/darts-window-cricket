@@ -3,6 +3,7 @@ import json
 from datetime import datetime
 from kivy.utils import platform
 from kivy.storage.jsonstore import JsonStore
+import zipfile
 
 class GameHistory:
     def __init__(self):
@@ -83,4 +84,106 @@ class GameHistory:
                 return data['player1_name'], data['player2_name']
             return None, None
         except Exception as e:
-            return None, None 
+            return None, None
+
+    def request_storage_permissions(self):
+        """Request storage permissions on Android"""
+        if platform != 'android':
+            return True
+            
+        try:
+            from android.permissions import request_permissions, Permission
+            from jnius import autoclass
+            
+            # Get Android version
+            Build = autoclass('android.os.Build')
+            if Build.VERSION.SDK_INT >= 29:  # Android 10 and above
+                # Request MANAGE_EXTERNAL_STORAGE permission
+                Environment = autoclass('android.os.Environment')
+                if not Environment.isExternalStorageManager():
+                    Intent = autoclass('android.content.Intent')
+                    Settings = autoclass('android.provider.Settings')
+                    activity = autoclass('org.kivy.android.PythonActivity').mActivity
+                    intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                    activity.startActivity(intent)
+                    return False
+                return True
+            else:
+                # For older Android versions, request read/write permissions
+                permissions = [
+                    Permission.READ_EXTERNAL_STORAGE,
+                    Permission.WRITE_EXTERNAL_STORAGE
+                ]
+                request_permissions(permissions)
+                return True
+        except Exception as e:
+            # Log the error but don't crash
+            print(f"Failed to request permissions: {str(e)}")
+            return False
+
+    def export_history(self):
+        """Export game history to a zip file"""
+        try:
+            # Request permissions if on Android
+            if platform == 'android' and not self.request_storage_permissions():
+                return None, "Storage permission denied"
+
+            # Create a temporary directory for the zip file
+            if platform == 'android':
+                # On Android, use the primary external storage
+                from android.storage import primary_external_storage_path
+                export_dir = os.path.join(primary_external_storage_path(), 'Download')
+            else:
+                # On other platforms, use the current directory
+                export_dir = os.path.expanduser('~')
+
+            # Create zip filename with timestamp
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+            zip_filename = f'window_cricket_history_{timestamp}.zip'
+            zip_path = os.path.join(export_dir, zip_filename)
+
+            # Create zip file
+            with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
+                # Add all game files
+                for f in os.listdir(self.base_dir):
+                    if f.endswith('.txt'):
+                        file_path = os.path.join(self.base_dir, f)
+                        zipf.write(file_path, f)
+
+            return zip_path, None
+
+        except Exception as e:
+            return None, str(e)
+
+    def import_history(self):
+        """Import game history from a zip file"""
+        try:
+            # Request permissions if on Android
+            if platform == 'android' and not self.request_storage_permissions():
+                return None, "Storage permission denied"
+
+            if platform == 'android':
+                # On Android, use the primary external storage
+                from android.storage import primary_external_storage_path
+                import_dir = os.path.join(primary_external_storage_path(), 'Download')
+            else:
+                # On other platforms, use the current directory
+                import_dir = os.path.expanduser('~')
+
+            # Find the most recent zip file in the directory
+            zip_files = [f for f in os.listdir(import_dir) if f.startswith('window_cricket_history_') and f.endswith('.zip')]
+            if not zip_files:
+                raise Exception(f'No history zip files found in {import_dir}')
+
+            # Sort by modification time, most recent first
+            latest_zip = max(zip_files, key=lambda f: os.path.getmtime(os.path.join(import_dir, f)))
+            zip_path = os.path.join(import_dir, latest_zip)
+
+            # Extract files to game history directory
+            with zipfile.ZipFile(zip_path, 'r') as zipf:
+                zipf.extractall(self.base_dir)
+
+            return zip_path, None
+
+        except Exception as e:
+            return None, str(e) 

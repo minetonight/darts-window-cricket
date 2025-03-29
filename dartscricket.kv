@@ -465,7 +465,40 @@
         Rectangle:
             pos: self.pos
             size: self.size
-
+    Popup:
+        id: popup
+        title: ""
+        isOpen: False
+        
+        on_open: self.isOpen = True 
+        on_dismiss: self.isOpen = False
+        
+        # this makes the popup float and hidden
+        on_parent:
+            if self.parent == root: self.parent.remove_widget(self)
+        
+        BoxLayout:
+            orientation: 'vertical'
+            ScrollView:
+                Label: 
+                    size_hint_y: None 
+                    height: self.texture_size[1] 
+                    text_size: self.width - dp(20), None  # Account for padding
+                    halign: 'left'  # Left align text
+                    valign: 'top'   # Start from top
+                    padding: '10dp'  # Add padding around text
+                    text: root.popup_text
+            
+            Button:
+                # transparent buttons
+                background_normal: '' 
+                background_color: 1, 1, 1, 0
+    
+                size_hint_y: None
+                size_y: '50dp'
+                text: 'Dismiss'
+                on_release: popup.dismiss()
+            
     BoxLayout:
         orientation: 'vertical'
         padding: '10dp'
@@ -523,6 +556,34 @@
                 font_size: '18sp'
                 bold: True
                 on_release: root.replay_selected_file()
+                
+        BoxLayout:
+            size_hint_y: 0.1
+            spacing: '10dp'
+            BoxLayout:
+                size_hint_y: None
+                height: dp(50)
+                spacing: '10dp'
+                
+                Button:
+                    text: 'Export all to zip'
+                    size_hint_x: 0.5
+                    background_normal: ''
+                    background_color: (0.3, 0.7, 0.3, 1)
+                    color: (1, 1, 1, 1)
+                    font_size: '18sp'
+                    bold: True
+                    on_release: root.export_history()
+
+                Button:
+                    text: 'Import zip'
+                    size_hint_x: 0.5
+                    background_normal: ''
+                    background_color: (0.3, 0.7, 0.3, 1)
+                    color: (1, 1, 1, 1)
+                    font_size: '18sp'
+                    bold: True
+                    on_release: root.import_history()
 
 <HistoryItem@BoxLayout>:
     canvas.before:
