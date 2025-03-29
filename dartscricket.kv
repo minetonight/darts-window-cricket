@@ -465,39 +465,6 @@
         Rectangle:
             pos: self.pos
             size: self.size
-    Popup:
-        id: popup
-        title: ""
-        isOpen: False
-        
-        on_open: self.isOpen = True 
-        on_dismiss: self.isOpen = False
-        
-        # this makes the popup float and hidden
-        on_parent:
-            if self.parent == root: self.parent.remove_widget(self)
-        
-        BoxLayout:
-            orientation: 'vertical'
-            ScrollView:
-                Label: 
-                    size_hint_y: None 
-                    height: self.texture_size[1] 
-                    text_size: self.width - dp(20), None  # Account for padding
-                    halign: 'left'  # Left align text
-                    valign: 'top'   # Start from top
-                    padding: '10dp'  # Add padding around text
-                    text: root.popup_text
-            
-            Button:
-                # transparent buttons
-                background_normal: '' 
-                background_color: 1, 1, 1, 0
-    
-                size_hint_y: None
-                size_y: '50dp'
-                text: 'Dismiss'
-                on_release: popup.dismiss()
             
     BoxLayout:
         orientation: 'vertical'
@@ -822,20 +789,25 @@
             bold: True
             on_release: root.manager.current = 'history'
 
-<GameHistoryTextScreen>:
+<MessageScreen>:
     BoxLayout:
         orientation: 'vertical'
         padding: '10dp'
         spacing: '10dp'
 
         Label:
+            id: title_label
             text: 'Game History'
             font_size: '24sp'
             bold: True
             size_hint_y: 0.1
 
         ScrollView:
+            id: scroll_view
             size_hint_y: 0.8
+            do_scroll_x: False
+            do_scroll_y: True
+            scroll_type: ['bars', 'content']
             
             Label:
                 id: history_text
@@ -843,10 +815,10 @@
                 font_size: '16sp'
                 size_hint_y: None
                 height: self.texture_size[1] # key for scrolling
-                text_size: self.width, None
-                halign: 'left'
-                valign: 'top'
-                padding: '10dp'
+                text_size: self.width - dp(20), None  # Account for padding
+                halign: 'left'  # Left align text
+                valign: 'top'   # Start from top
+                padding: '10dp'  # Add padding around text
 
         Button:
             text: 'Back'

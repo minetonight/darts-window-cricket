@@ -4,7 +4,7 @@
 title = Darts Window Cricket
 
 # (str) Application versioning (method 1)
-version = 2.2.0
+version = 2.2.1
 
 # (str) Package name
 package.name = darts_window_cricket

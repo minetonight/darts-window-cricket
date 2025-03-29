@@ -344,14 +344,23 @@ class GameHistoryViewScreen(Screen):
             
             history_layout.add_widget(round_box)
 
-class GameHistoryTextScreen(Screen):
+class MessageScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game_data = None
+        self.is_message = False
+        self.message_title = ''
+        self.message_text = ''
+
+    def scroll_to_top(self):
+        """Scroll the message to the top"""
+        if hasattr(self, 'ids') and 'history_text' in self.ids:
+            self.ids.history_text.parent.scroll_y = 1.0  # 1.0 is top, 0.0 is bottom
 
     def initialize_view(self, game_data):
         """Initialize the view with game data"""
         self.game_data = game_data
+        self.is_message = False
         players = game_data['players']
         settings = game_data['settings']
         
@@ -378,20 +387,29 @@ class GameHistoryTextScreen(Screen):
         
         # Update the text widget
         self.ids.history_text.text = "\n".join(text)
+        self.ids.title_label.text = 'Game History'
+        self.scroll_to_top()
+
+    def show_message(self, title, message):
+        """Show a message in the text screen"""
+        self.is_message = True
+        self.message_title = title
+        self.message_text = message
+        self.ids.title_label.text = title
+        self.ids.history_text.text = message
+        self.scroll_to_top()
 
 class HistoryScreen(Screen):
-    popup_text = StringProperty('')  # Add this property for popup text
-
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.game_history = GameHistory()
         self.selected_index = None
 
-    def show_popup(self, title, message):
-        """Show a popup with the given message"""
-        self.popup_text = message
-        self.ids.popup.title = title
-        self.ids.popup.open()
+    def show_message(self, title, message):
+        """Show a message in the text screen"""
+        text_screen = self.manager.get_screen('message')
+        text_screen.show_message(title, message)
+        self.manager.current = 'message'
 
     def list_history_files(self):
         """Load the list of game history files"""
@@ -412,7 +430,7 @@ class HistoryScreen(Screen):
                 {'text': f[0], 'selected': False} for f in files
             ]
         except Exception as e:
-            self.show_popup('Error', f'Failed to load history:\n{str(e)}')
+            self.show_message('Error', f'Failed to load history:\n{str(e)}')
 
     def select_with_touch(self, index, touch):
         """Handle selection of items in the RecycleView"""
@@ -441,12 +459,12 @@ class HistoryScreen(Screen):
                 game_data = json.load(f)
             
             # Initialize and show history text screen
-            history_text = self.manager.get_screen('history_text')
+            history_text = self.manager.get_screen('message')
             history_text.initialize_view(game_data)
-            self.manager.current = 'history_text'
+            self.manager.current = 'message'
             
         except Exception as e:
-            self.show_popup('Error', f'Failed to load game:\n{str(e)}')
+            self.show_message('Error', f'Failed to load game:\n{str(e)}')
 
     def replay_selected_file(self):
         """Replay the selected game file"""
@@ -466,16 +484,16 @@ class HistoryScreen(Screen):
             self.manager.current = 'replay'
             
         except Exception as e:
-            self.show_popup('Error', f'Failed to load replay:\n{str(e)}')
+            self.show_message('Error', f'Failed to load replay:\n{str(e)}')
 
     def export_history(self):
         """Export game history to a zip file"""
         zip_path, error = self.game_history.export_history()
         
         if zip_path:
-            self.show_popup('Success', f'History exported to:\n{zip_path}')
+            self.show_message('Success', f'History exported to:\n{zip_path}')
         else:
-            self.show_popup('Error', f'Failed to export history:\n{error}')
+            self.show_message('Error', f'Failed to export history:\n{error}')
 
     def import_history(self):
         """Import game history from a zip file"""
@@ -484,9 +502,9 @@ class HistoryScreen(Screen):
         if zip_path:
             # Refresh the history list
             self.list_history_files()
-            self.show_popup('Success', f'History imported from:\n{zip_path}')
+            self.show_message('Success', f'History imported from:\n{zip_path}')
         else:
-            self.show_popup('Error', f'Failed to import history:\n{error}')
+            self.show_message('Error', f'Failed to import history:\n{error}')
 
 class ReplayScreen(Screen):
     def __init__(self, **kwargs):
@@ -1022,7 +1040,7 @@ class DartsCricketApp(App):
         sm.add_widget(HistoryScreen(name='history'))
         sm.add_widget(ReplayScreen(name='replay'))
         sm.add_widget(GameHistoryViewScreen(name='history_view'))
-        sm.add_widget(GameHistoryTextScreen(name='history_text'))
+        sm.add_widget(MessageScreen(name='message'))
         return sm
 
 if __name__ == '__main__':
