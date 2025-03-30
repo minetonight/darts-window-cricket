@@ -290,60 +290,6 @@ class HistoryItem(RecycleDataViewBehavior, BoxLayout):
                 break
             parent = parent.parent
 
-class GameHistoryViewScreen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.game_data = None
-
-    def initialize_view(self, game_data):
-        """Initialize the view with game data"""
-        self.game_data = game_data
-        players = game_data['players']
-        settings = game_data['settings']
-        
-        # Update header information
-        self.ids.game_title.text = f"{players[0]['name']} vs {players[1]['name']}"
-        self.ids.game_settings.text = f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}"
-        self.ids.game_bull.text = f"Bull Points: {settings['bull_points']}"
-        
-        # Clear existing history
-        history_layout = self.ids.history_layout
-        history_layout.clear_widgets()
-        
-        # Add round history
-        for round_num, round_marks in enumerate(game_data['history'], 1):
-            round_box = BoxLayout(orientation='vertical', size_hint_y=None, height=dp(100))
-            
-            # Round header
-            round_header = Label(
-                text=f"Round {round_num}",
-                size_hint_y=None,
-                height=dp(30),
-                font_size='18sp',
-                bold=True
-            )
-            round_box.add_widget(round_header)
-            
-            # Marks in this round
-            marks_text = ""
-            for mark in round_marks:
-                player = players[mark['player']]['name']
-                sector = mark['sector']
-                points = mark['points']
-                marks_text += f"{player}: {sector}"
-                if points > 0:
-                    marks_text += f" (+{points})"
-                marks_text += "\n"
-            
-            round_box.add_widget(Label(
-                text=marks_text,
-                size_hint_y=None,
-                height=dp(70),
-                font_size='16sp'
-            ))
-            
-            history_layout.add_widget(round_box)
-
 class MessageScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -357,7 +303,7 @@ class MessageScreen(Screen):
         if hasattr(self, 'ids') and 'history_text' in self.ids:
             self.ids.history_text.parent.scroll_y = 1.0  # 1.0 is top, 0.0 is bottom
 
-    def initialize_view(self, game_data):
+    def parse_game_data(self, game_data):
         """Initialize the view with game data"""
         self.game_data = game_data
         self.is_message = False
@@ -369,20 +315,31 @@ class MessageScreen(Screen):
         
         # Add game info header
         text.append(f"{players[0]['name']} vs {players[1]['name']}")
+        text.append(f"{players[0]['mpr']:.2f} vs {players[1]['mpr']:.2f}")
+        #game of # rounds
+        rounds = int((len(game_data['history']) + 1) / 2)
+        text.append(f"Game of {rounds} rounds")
         text.append(f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}")
         text.append(f"Bull Points: {settings['bull_points']}")
         text.append("")  # Empty line for spacing
         
         # Add round history
         for round_num, round_marks in enumerate(game_data['history'], 1):
-            text.append(f"Round {round_num}")
+            text.append(f"Round {int((round_num+1)/2)} for {players[round_marks[0]['player']]['name']}")
+            
+            line_text = f"    "
             for mark in round_marks:
-                player = players[mark['player']]['name']
                 sector = mark['sector']
                 points = mark['points']
-                text.append(f"  {player}: {sector}")
-                if points > 0:
-                    text.append(f"    (+{points} points)")
+                scoring = mark['was_scoring']
+                if scoring:
+                    line_text += f"(+{points})"
+                else:
+                    line_text += f"{sector}"
+                line_text += ", "
+            # remove the last comma
+            line_text = line_text[:-2]
+            text.append(line_text)
             text.append("")  # Empty line between rounds
         
         # Update the text widget
@@ -414,20 +371,9 @@ class HistoryScreen(Screen):
     def list_history_files(self):
         """Load the list of game history files"""
         try:
-            # Get list of files with their modification times
-            files = []
-            for f in os.listdir(self.game_history.base_dir):
-                if f.endswith('.txt') and f != 'metadata.json':
-                    filepath = os.path.join(self.game_history.base_dir, f)
-                    mtime = os.path.getmtime(filepath)
-                    files.append((f, mtime))
-            
-            # Sort by modification time, most recent first
-            files.sort(key=lambda x: x[1], reverse=True)
-            
-            # Extract just the filenames for display
+            files = self.game_history.get_history_files()
             self.ids.history_list.data = [
-                {'text': f[0], 'selected': False} for f in files
+                {'text': f, 'selected': False} for f in files
             ]
         except Exception as e:
             self.show_message('Error', f'Failed to load history:\n{str(e)}')
@@ -453,14 +399,11 @@ class HistoryScreen(Screen):
             
         try:
             selected_file = self.ids.history_list.data[self.selected_index]['text']
-            filepath = os.path.join(self.game_history.base_dir, selected_file)
-            
-            with open(filepath, 'r') as f:
-                game_data = json.load(f)
+            game_data = self.game_history.load_game(selected_file)
             
             # Initialize and show history text screen
             history_text = self.manager.get_screen('message')
-            history_text.initialize_view(game_data)
+            history_text.parse_game_data(game_data)
             self.manager.current = 'message'
             
         except Exception as e:
@@ -473,10 +416,8 @@ class HistoryScreen(Screen):
             
         try:
             selected_file = self.ids.history_list.data[self.selected_index]['text']
-            filepath = os.path.join(self.game_history.base_dir, selected_file)
+            game_data = self.game_history.load_game(selected_file)
             
-            with open(filepath, 'r') as f:
-                game_data = json.load(f)
             
             # Initialize replay screen
             replay_screen = self.manager.get_screen('replay')
@@ -1039,7 +980,6 @@ class DartsCricketApp(App):
         sm.add_widget(GameScreen(name='game'))
         sm.add_widget(HistoryScreen(name='history'))
         sm.add_widget(ReplayScreen(name='replay'))
-        sm.add_widget(GameHistoryViewScreen(name='history_view'))
         sm.add_widget(MessageScreen(name='message'))
         return sm
 

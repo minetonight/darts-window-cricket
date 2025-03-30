@@ -29,8 +29,9 @@ class GameHistory:
         """Save game history to a file"""
         try:
             # Create filename with player names and date
-            timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
-            filename = f"{game.players[0].name}_vs_{game.players[1].name}_{timestamp}.txt"
+            rounds = int((len(game.mark_history) + 1) / 2)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+            filename = f"R{rounds} {game.players[0].name}{{{game.players[0].mpr:.2f}}} vs {game.players[1].name}{{{game.players[1].mpr:.2f}}} on {timestamp}.json"
             filepath = os.path.join(self.base_dir, filename)
             
             # Prepare game data for serialization
@@ -146,7 +147,7 @@ class GameHistory:
             with zipfile.ZipFile(zip_path, 'w', zipfile.ZIP_DEFLATED) as zipf:
                 # Add all game files
                 for f in os.listdir(self.base_dir):
-                    if f.endswith('.txt'):
+                    if f.endswith('.txt') or f.endswith('.json'):
                         file_path = os.path.join(self.base_dir, f)
                         zipf.write(file_path, f)
 
@@ -186,4 +187,26 @@ class GameHistory:
             return zip_path, None
 
         except Exception as e:
-            return None, str(e) 
+            return None, str(e)
+
+    def get_history_files(self):
+        """Get list of history files sorted by modification time"""
+        # Get list of files with their modification times
+        files = []
+        for f in os.listdir(self.base_dir):
+            if (f.endswith('.json') or f.endswith('.txt')) and f != 'metadata.json':
+                filepath = os.path.join(self.base_dir, f)
+                mtime = os.path.getmtime(filepath)
+                files.append((f, mtime))
+        
+        # Sort by modification time, most recent first
+        files.sort(key=lambda x: x[1], reverse=True)
+        
+        # Return just the filenames
+        return [f[0] for f in files]
+
+    def load_game(self, filename):
+        """Load game data from a file"""
+        filepath = os.path.join(self.base_dir, filename)
+        with open(filepath, 'r') as f:
+            return json.load(f)

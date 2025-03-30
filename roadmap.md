@@ -35,7 +35,9 @@ v   )) the text file contains the marks history data structure serialized in hum
 v   )) if there is a history file, load the latest players names from the file to the data input screen
 v   )) read history as text in the app
 v   )) files are sorted by modification time
-v   )) export game files locally
+
+    ) export game files locally
+    )) android does not ask for permissions
 
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players
@@ -59,4 +61,20 @@ v   ) fix nine marks in nine sectors, as up to three sectors with nine marks tot
     promted and failed with:
     + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
 
-    ) 
+    ) UI improvements
+    )) sectors have larger fonts (except Bull)
+    )) narrow diff font: (+100) overflows 
+    
+    ) replays to stay until exit button is pressed
+
+v   ) history revamp
+v   )) use json files, read txt too
+v   )) file name as [rounds] [player1]{mpr1} vs [player2]{mpr2} on [date].json
+v   )) text mode shows round and mpr
+v   )) text mode shows history on one line
+    ))) old  txt file - exc for second player fix
+
+    ) add player stats button
+    )) group players names and have history for rounds, mprs, most scored sectors, least scored sectors
+    )) 
+
