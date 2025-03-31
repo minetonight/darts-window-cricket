@@ -456,6 +456,9 @@ class ReplayScreen(Screen):
         self.current_round = 0
         self.current_mark = 0
         self.is_replaying = False
+        self.is_replay_finished = False
+        self.is_paused = False
+        self.pause_duration = 1.0  # Default pause duration in seconds
         # Initialize dictionaries for sector buttons and indicators
         self.sector_buttons = {}
         self.p1_indicators = {}
@@ -463,6 +466,35 @@ class ReplayScreen(Screen):
         # Set initial UI state
         self.ids.player1_container.background_color = [0.18, 0.18, 0.18, 1]
         self.ids.player2_container.background_color = [0.18, 0.18, 0.18, 1]
+
+    def toggle_pause(self):
+        """Toggle between pause and resume states"""
+        if not self.is_replaying:
+            return
+            
+        if self.is_paused:
+            # Resume the replay
+            self.is_paused = False
+            self.ids.pause_button.text = '⏸️'
+            self.replay_event = Clock.schedule_interval(self.replay_next_mark, self.pause_duration)
+        else:
+            # Pause the replay
+            self.is_paused = True
+            self.ids.pause_button.text = '▶️'
+            if self.replay_event:
+                self.replay_event.cancel()
+
+    def update_replay_speed(self):
+        """Update the pause duration when the speed setting changes"""
+        try:
+            self.pause_duration = float(self.ids.replay_speed.text)
+            # If replay is currently running, restart it with new speed
+            if self.is_replaying and self.replay_event and not self.is_paused:
+                self.replay_event.cancel()
+                self.replay_event = Clock.schedule_interval(self.replay_next_mark, self.pause_duration)
+        except ValueError:
+            # If conversion fails, keep the previous value
+            self.ids.replay_speed.text = str(self.pause_duration)
 
     def initialize_replay(self, game_data):
         """Initialize a new replay from game data"""
@@ -483,6 +515,13 @@ class ReplayScreen(Screen):
         self.create_sector_buttons()
         self.update_display()
         
+        # Reset replay state
+        self.is_replay_finished = False
+        self.is_paused = False
+        self.ids.stop_button.text = '⏹️'
+        self.ids.pause_button.text = '⏸️'
+        self.ids.replay_speed.text = str(self.pause_duration)
+        
         # Start the replay
         self.start_replay()
 
@@ -491,19 +530,23 @@ class ReplayScreen(Screen):
         self.is_replaying = True
         self.current_round = 0
         self.current_mark = 0
-        self.replay_event = Clock.schedule_interval(self.replay_next_mark, 1.0)
+        self.replay_event = Clock.schedule_interval(self.replay_next_mark, self.pause_duration)
         self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
 
     def stop_replay(self):
-        """Stop the replay and return to data input screen"""
+        """Stop the replay animation and clock"""
         if self.replay_event:
             self.replay_event.cancel()
+        self.is_replaying = False
         self.manager.current = 'data_input'
+        
 
     def replay_next_mark(self, dt):
         """Replay the next mark in the sequence"""
         if not self.is_replaying or self.current_round >= len(self.game_history):
-            self.stop_replay()
+            #keep the replay screen on and dont call stop_replay()
+            self.ids.stop_button.text = '⬆️'
+            self.is_replay_finished = True
             return
 
         current_round = self.game_history[self.current_round]
@@ -516,7 +559,9 @@ class ReplayScreen(Screen):
                 self.game.switch_player()
                 self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
             else:
-                self.stop_replay()
+                #keep the replay screen on and dont call stop_replay()
+                self.ids.stop_button.text = '⬆️'
+                self.is_replay_finished = True
             return
 
         # Replay the current mark

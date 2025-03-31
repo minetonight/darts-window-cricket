@@ -65,7 +65,8 @@ v   ) fix nine marks in nine sectors, as up to three sectors with nine marks tot
     )) sectors have larger fonts (except Bull)
     )) narrow diff font: (+100) overflows 
     
-    ) replays to stay until exit button is pressed
+v   ) replays to stay until exit button is pressed
+v   )) replays have speed setting and pause button
 
 v   ) history revamp
 v   )) use json files, read txt too
