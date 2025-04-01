@@ -127,9 +127,9 @@
                 spacing: '10dp'
                 
                 Label:
-                    text: 'History and Replays:'
+                    text: 'History and Stats:'
                     font_name: 'assets/fonts/Roboto-Bold.ttf'
-                    size_hint_x: 0.8
+                    size_hint_x: 0.6
                     font_size: '20sp'
                     halign: 'right'
 
@@ -143,6 +143,17 @@
                     color: (0.9, 0.9, 0.9, 1)
                     size_hint_x: 0.2
                     on_release: root.show_history()
+
+                Button:
+                    text: '👤'
+                    id: player_stats
+                    font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
+                    font_size: '24sp'
+                    background_normal: ''
+                    background_color: (0.3, 0.3, 0.3, 1)
+                    color: (0.9, 0.9, 0.9, 1)
+                    size_hint_x: 0.2
+                    on_release: root.show_player_stats()
 
             # Player 1 Name
             BoxLayout:
@@ -805,3 +816,81 @@
                 text: 'Back'
                 on_release: root.on_back()
                 size_hint_x: 0.5 
+
+<PlayerStatsScreen>:
+    canvas.before:
+        Color:
+            rgba: (0.12, 0.12, 0.12, 1)  # Dark background
+        Rectangle:
+            pos: self.pos
+            size: self.size
+            
+    BoxLayout:
+        orientation: 'vertical'
+        padding: '10dp'
+        spacing: '10dp'
+
+        Label:
+            text: 'Player Statistics'
+            font_size: '24sp'
+            bold: True
+            size_hint_y: 0.1
+
+        RecycleView:
+            id: player_list
+            viewclass: 'PlayerStatsItem'
+            size_hint_y: 0.8
+            RecycleBoxLayout:
+                default_size: None, dp(56)
+                default_size_hint: 1, None
+                size_hint_y: None
+                height: self.minimum_height
+                orientation: 'vertical'
+                spacing: '2dp'
+                padding: '2dp'
+
+        BoxLayout:
+            size_hint_y: 0.1
+            spacing: '10dp'
+
+            Button:
+                text: 'Back'
+                size_hint_x: 0.3
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.9, 0.9, 1)
+                font_size: '18sp'
+                bold: True
+                on_release: root.manager.current = 'data_input'
+
+            Button:
+                text: 'View Details'
+                size_hint_x: 0.7
+                background_normal: ''
+                background_color: (0.3, 0.7, 0.3, 1)
+                color: (1, 1, 1, 1)
+                font_size: '18sp'
+                bold: True
+                on_release: root.show_player_details()
+
+<PlayerStatsItem>:
+    canvas.before:
+        Color:
+            rgba: (0.2, 0.2, 0.2, 1) if self.selected else (0.18, 0.18, 0.18, 1)
+        Rectangle:
+            pos: self.pos
+            size: self.size
+
+    BoxLayout:
+        orientation: 'horizontal'
+        padding: '10dp'
+        spacing: '10dp'
+
+        Label:
+            text: root.text
+            font_size: '18sp'
+            color: (0.9, 0.9, 0.9, 1)
+            size_hint_x: 1
+            text_size: self.size
+            halign: 'left'
+            valign: 'middle' 

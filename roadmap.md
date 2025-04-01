@@ -76,8 +76,11 @@ v   )) text mode shows round and mpr
 v   )) text mode shows history on one line
     ))) old  txt file - exc for second player fix
 
-    ) add player stats button
-    )) group players names and have history for rounds, mprs, most scored sectors, least scored sectors
+v   ) add player stats button
+v   )) group players by name 
+v   )) have history for wins, 
+v   )) avg min and max rounds, 
+v   )) avg min and max mprs, 
+v   )) sectors stats, 
 v   )) delete button for test replays.
-    )) 
 

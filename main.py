@@ -201,7 +201,27 @@ class CricketGame:
                 self.game_over = True
                 return True
         return False
-
+    
+    def get_winner_index(self):
+        """Get the index of the winner"""
+        if not self.game_over:
+            raise ValueError("Game is not over")
+        
+        if self.players[0].score == self.players[1].score:
+            p1_closed_sectors = len([hits for hits in self.players[0].sectors.values() if hits >= 3])
+            p2_closed_sectors = len([hits for hits in self.players[1].sectors.values() if hits >= 3])
+            if p1_closed_sectors > p2_closed_sectors:
+                return 0
+            elif p1_closed_sectors < p2_closed_sectors:
+                return 1
+            else:
+                raise ValueError("Game is a draw")
+            
+        elif self.players[0].score > self.players[1].score:
+            return 0
+        else:
+            return 1
+    
 class SectorButton(Button):
     sector_state = StringProperty('normal')  # 'normal', 'opponent_open', 'player_open', 'closed'
     BLUE    = [0.2, 0.6, 0.9, 1] # dark blue
@@ -305,16 +325,55 @@ class MessageScreen(Screen):
         self.message_title = ''
         self.message_text = ''
         self.on_confirm = None
+        self.caller_screen = None
 
     def scroll_to_top(self):
         """Scroll the message to the top"""
         if hasattr(self, 'ids') and 'history_text' in self.ids:
             self.ids.history_text.parent.scroll_y = 1.0  # 1.0 is top, 0.0 is bottom
 
-    def parse_game_data(self, game_data):
-        """Initialize the view with game data"""
-        self.game_data = game_data
-        self.is_message = False
+    def show_message(self, title, message, on_confirm=None, caller_screen=None):
+        """Show a message in the text screen"""
+        self.is_message = True
+        self.message_title = title
+        self.message_text = message
+        self.on_confirm = on_confirm
+        self.caller_screen = caller_screen
+        self.ids.title_label.text = title
+        self.ids.history_text.text = message
+        self.scroll_to_top()
+
+    def on_back(self):
+        """Handle back button press"""
+        if self.on_confirm:
+            # If this was a confirmation dialog, go back without confirming
+            self.on_confirm = None
+        # Return to the caller screen
+        self.manager.current = self.caller_screen
+
+    def on_ok(self):
+        """Handle OK button press"""
+        if self.on_confirm:
+            # If this was a confirmation dialog, call the callback
+            self.on_confirm()
+            self.on_confirm = None
+        # Return to the caller screen
+        self.manager.current = self.caller_screen
+
+class HistoryScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_history = GameHistory()
+        self.selected_index = None
+
+    def show_message(self, title, message, callback=None):
+        """Show a message in the text screen"""
+        text_screen = self.manager.get_screen('message')
+        text_screen.show_message(title, message, callback, caller_screen='history')
+        self.manager.current = 'message'
+
+    def format_game_data(self, game_data):
+        """Format game data into displayable text"""
         players = game_data['players']
         settings = game_data['settings']
         
@@ -324,7 +383,6 @@ class MessageScreen(Screen):
         # Add game info header
         text.append(f"{players[0]['name']} vs {players[1]['name']}")
         text.append(f"{players[0]['mpr']:.2f} vs {players[1]['mpr']:.2f}")
-        #game of # rounds
         rounds = int((len(game_data['history']) + 1) / 2)
         text.append(f"Game of {rounds} rounds")
         text.append(f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}")
@@ -349,48 +407,8 @@ class MessageScreen(Screen):
             line_text = line_text[:-2]
             text.append(line_text)
             text.append("")  # Empty line between rounds
-        
-        # Update the text widget
-        self.ids.history_text.text = "\n".join(text)
-        self.ids.title_label.text = 'Game History'
-        self.scroll_to_top()
-
-    def show_message(self, title, message, on_confirm=None):
-        """Show a message in the text screen"""
-        self.is_message = True
-        self.message_title = title
-        self.message_text = message
-        self.on_confirm = on_confirm
-        self.ids.title_label.text = title
-        self.ids.history_text.text = message
-        self.scroll_to_top()
-
-    def on_back(self):
-        """Handle back button press"""
-        if self.on_confirm:
-            # If this was a confirmation dialog, go back without confirming
-            self.on_confirm = None
-        self.manager.current = 'history'
-
-    def on_ok(self):
-        """Handle OK button press"""
-        if self.on_confirm:
-            # If this was a confirmation dialog, call the callback
-            self.on_confirm()
-            self.on_confirm = None
-        self.manager.current = 'history'
-
-class HistoryScreen(Screen):
-    def __init__(self, **kwargs):
-        super().__init__(**kwargs)
-        self.game_history = GameHistory()
-        self.selected_index = None
-
-    def show_message(self, title, message, callback=None):
-        """Show a message in the text screen"""
-        text_screen = self.manager.get_screen('message')
-        text_screen.show_message(title, message, callback)
-        self.manager.current = 'message'
+            
+        return "\n".join(text)
 
     def list_history_files(self):
         """Load the list of game history files"""
@@ -425,10 +443,9 @@ class HistoryScreen(Screen):
             selected_file = self.ids.history_list.data[self.selected_index]['text']
             game_data = self.game_history.load_game(selected_file)
             
-            # Initialize and show history text screen
-            history_text = self.manager.get_screen('message')
-            history_text.parse_game_data(game_data)
-            self.manager.current = 'message'
+            # Format the game data into text
+            formatted_text = self.format_game_data(game_data)
+            self.show_message('Game History', formatted_text)
             
         except Exception as e:
             self.show_message('Error', f'Failed to load game:\n{str(e)}')
@@ -467,7 +484,6 @@ class HistoryScreen(Screen):
         if zip_path:
             # Refresh the history list
             self.list_history_files()
-            self.show_message('Success', f'History imported from:\n{zip_path}')
         else:
             self.show_message('Error', f'Failed to import history:\n{error}')
 
@@ -748,6 +764,206 @@ class ReplayScreen(Screen):
             self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
             self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
 
+class PlayerStatsItem(RecycleDataViewBehavior, BoxLayout):
+    """Add selection support to the Label"""
+    index = None
+    selected = BooleanProperty(False)
+    selectable = BooleanProperty(True)
+    text = StringProperty('')
+
+    def refresh_view_attrs(self, rv, index, data):
+        """Catch and handle the view changes"""
+        self.index = index
+        self.text = data.get('text', '')
+        self.selected = data.get('selected', False)
+
+    def on_touch_down(self, touch):
+        """Add selection on touch down"""
+        if super(PlayerStatsItem, self).on_touch_down(touch):
+ 
+            return True
+        if self.collide_point(*touch.pos) and self.selectable:
+            # Get the RecycleView parent
+            rv = self.parent.parent
+            # Find the PlayerStatsScreen by traversing up the widget tree
+            parent = rv
+            while parent is not None:
+                if isinstance(parent, PlayerStatsScreen):
+                    return parent.select_with_touch(self.index, touch)
+                parent = parent.parent
+        return False
+
+    def apply_selection(self, rv, index, is_selected):
+        """Respond to the selection of items in the view"""
+        self.selected = is_selected
+        # Find the PlayerStatsScreen by traversing up the widget tree
+        parent = rv
+        while parent is not None:
+            if isinstance(parent, PlayerStatsScreen):
+                parent.selected_index = index if is_selected else None
+                break
+            parent = parent.parent
+
+class PlayerStatsScreen(Screen):
+    def __init__(self, **kwargs):
+        super().__init__(**kwargs)
+        self.game_history = GameHistory()
+        self.selected_index = None
+        self.player_stats = {}
+
+    def show_message(self, title, message, callback=None):
+        """Show a message in the text screen"""
+        text_screen = self.manager.get_screen('message')
+        text_screen.show_message(title, message, callback, caller_screen='player_stats')
+        self.manager.current = 'message'
+
+    def select_with_touch(self, index, touch):
+        """Handle selection of items in the RecycleView"""
+        # Deselect all items
+        for item in self.ids.player_list.data:
+            item['selected'] = False
+        
+        # Select the touched item
+        if index is not None:
+            self.ids.player_list.data[index]['selected'] = True
+            self.selected_index = index
+        
+        # Refresh the view
+        self.ids.player_list.refresh_from_data()
+
+    def load_player_stats(self):
+        """Load and calculate player statistics from game history"""
+        try:
+            # Get all game files
+            files = self.game_history.get_history_files()
+            
+            # Initialize player stats dictionary
+            self.player_stats = {}
+            
+            # Process each game file
+            for file in files:
+                game_data = self.game_history.load_game(file)
+                if not game_data:
+                    continue
+                    
+                # Process each player in the game
+                for player in game_data['players']:
+                    name = player['name']
+                    if name not in self.player_stats:
+                        self.player_stats[name] = {
+                            'games_played': 0,
+                            'games_won': 0,
+                            'total_rounds': 0,
+                            'min_rounds': float('inf'),
+                            'max_rounds': 0,
+                            'total_mpr': 0,
+                            'min_mpr': float('inf'),
+                            'max_mpr': 0,
+                            'sector_hits': {},
+                            'sector_games': {},  # Track games played per sector
+                            'total_sector_hits': 0
+                        }
+                    
+                    stats = self.player_stats[name]
+                    stats['games_played'] += 1
+                    
+                    # Calculate rounds in this game
+                    rounds = int((len(game_data['history']) + 1) / 2)
+                    stats['total_rounds'] += rounds
+                    stats['min_rounds'] = min(stats['min_rounds'], rounds)
+                    stats['max_rounds'] = max(stats['max_rounds'], rounds)
+                    
+                    # Track MPR
+                    mpr = player['mpr']
+                    stats['total_mpr'] += mpr
+                    stats['min_mpr'] = min(stats['min_mpr'], mpr)
+                    stats['max_mpr'] = max(stats['max_mpr'], mpr)
+                    
+                    # Track sector hits and games played per sector
+                    sectors_hit_in_game = set()  # Track unique sectors hit in this game
+                    for round_marks in game_data['history']:
+                        for mark in round_marks:
+                            if mark['player'] == game_data['players'].index(player):
+                                sector = mark['sector']
+                                if sector not in stats['sector_hits']:
+                                    stats['sector_hits'][sector] = 0
+                                    stats['sector_games'][sector] = 0
+                                stats['sector_hits'][sector] += 1
+                                sectors_hit_in_game.add(sector)
+                                stats['total_sector_hits'] += 1
+                    
+                    # Increment games played for each sector hit in this game
+                    for sector in sectors_hit_in_game:
+                        stats['sector_games'][sector] += 1
+                    
+                    # Track wins
+                    if game_data['winner']['name'] == name:
+                        stats['games_won'] += 1
+            
+            # Calculate averages and format stats for display
+            for name, stats in self.player_stats.items():
+                if stats['games_played'] > 0:
+                    stats['avg_rounds'] = stats['total_rounds'] / stats['games_played']
+                    stats['avg_mpr'] = stats['total_mpr'] / stats['games_played']
+                    stats['win_rate'] = stats['games_won'] / stats['games_played'] * 100
+                    
+                    # Calculate average hits per game for each sector
+                    stats['sector_avgs'] = {}
+                    for sector in stats['sector_hits']:
+                        if stats['sector_games'][sector] > 0:
+                            stats['sector_avgs'][sector] = stats['sector_hits'][sector] / stats['sector_games'][sector]
+                    
+                    # Find most and least hit sectors
+                    if stats['sector_hits']:
+                        stats['most_hit_sector'] = max(stats['sector_hits'].items(), key=lambda x: x[1])[0]
+                        stats['least_hit_sector'] = min(stats['sector_hits'].items(), key=lambda x: x[1])[0]
+            
+            # Update the player list
+            self.ids.player_list.data = [
+                {'text': name, 'selected': False} for name in self.player_stats.keys()
+            ]
+            
+        except Exception as e:
+            self.show_message('Error', f'Failed to load player stats:\n{str(e)}')
+
+    def show_player_details(self):
+        """Show detailed statistics for the selected player"""
+        if self.selected_index is None:
+            return
+            
+        try:
+            selected_name = self.ids.player_list.data[self.selected_index]['text']
+            stats = self.player_stats[selected_name]
+            
+            # Format the details text
+            details = []
+            details.append(f"Player: {selected_name}")
+            details.append(f"Games Played: {stats['games_played']}")
+            details.append(f"Games Won: {stats['games_won']}")
+            details.append(f"Win Rate: {stats['win_rate']:.1f}%")
+            details.append(f"Average Rounds: {stats['avg_rounds']:.1f}")
+            details.append(f"Min Rounds: {stats['min_rounds']}")
+            details.append(f"Max Rounds: {stats['max_rounds']}")
+            details.append(f"Average MPR: {stats['avg_mpr']:.2f}")
+            details.append(f"Min MPR: {stats['min_mpr']:.2f}")
+            details.append(f"Max MPR: {stats['max_mpr']:.2f}")
+            
+            # Add sector statistics
+            details.append("\nSector Statistics:")
+            for sector in sorted(stats['sector_hits'].keys()):
+                hits = stats['sector_hits'][sector]
+                games = stats['sector_games'][sector]
+                avg = stats['sector_avgs'][sector]
+                details.append(f"{sector if sector != 'Bull' else 'Bull'}: {avg:.2f} hit/game) ({hits} hits in {games} games)")
+            
+            # Show details in message screen
+            text_screen = self.manager.get_screen('message')
+            text_screen.show_message(f"{selected_name}'s Statistics", "\n".join(details), caller_screen='player_stats')
+            self.manager.current = 'message'
+            
+        except Exception as e:
+            self.show_message('Error', f'Failed to show player details:\n{str(e)}')
+
 class DataInputScreen(Screen):
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -842,6 +1058,13 @@ class DataInputScreen(Screen):
         historyScreen = self.manager.get_screen('history')
         historyScreen.list_history_files()
         self.manager.current = 'history'
+
+    def show_player_stats(self):
+        """Show the player statistics screen"""
+        # Initialize and show player stats screen
+        stats_screen = self.manager.get_screen('player_stats')
+        stats_screen.load_player_stats()
+        self.manager.current = 'player_stats'
 
 class GameScreen(Screen):
     def __init__(self, **kwargs):
@@ -950,7 +1173,7 @@ class GameScreen(Screen):
             self.game.check_game_over()
 
             if self.game.game_over:
-                winner = self.game.players[0] if self.game.players[0].score > self.game.players[1].score else self.game.players[1]
+                winner = self.game.players[self.game.get_winner_index()]
                 # Set winner container to gold, loser to brown
                 winner_idx = 0 if winner == self.game.players[0] else 1
                 self.ids.player1_container.background_color = [0.8, 0.7, 0.2, 1] if winner_idx == 0 else [0.6, 0.4, 0.2, 1]
@@ -1082,6 +1305,7 @@ class DartsCricketApp(App):
         sm.add_widget(HistoryScreen(name='history'))
         sm.add_widget(ReplayScreen(name='replay'))
         sm.add_widget(MessageScreen(name='message'))
+        sm.add_widget(PlayerStatsScreen(name='player_stats'))
         return sm
 
 if __name__ == '__main__':

@@ -38,8 +38,13 @@ class GameHistory:
             game_data = {
                 'players': [
                     {'name': game.players[0].name, 'score': game.players[0].score, 'mpr': game.players[0].mpr},
-                    {'name': game.players[1].name, 'score': game.players[1].score, 'mpr': game.players[1].mpr}
+                    {'name': game.players[1].name, 'score': game.players[1].score, 'mpr': game.players[1].mpr},
                 ],
+                'winner': {
+                    'id': game.get_winner_index(),
+                    'name': game.players[game.get_winner_index()].name,
+                    'score': game.players[game.get_winner_index()].score
+                }, 
                 'settings': {
                     'highest_sector': game.highest_sector,
                     'lowest_sector': game.lowest_sector,
@@ -214,8 +219,7 @@ class GameHistory:
     def delete_game(self, filename):
         """Delete a game file"""
         filepath = os.path.join(self.base_dir, filename)
-        try:
+        if os.path.exists(filepath):
             os.remove(filepath)
             return True, None
-        except Exception as e:
-            return False, str(e)
+        return False, "File not found"
