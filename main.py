@@ -204,22 +204,29 @@ class CricketGame:
 
 class SectorButton(Button):
     sector_state = StringProperty('normal')  # 'normal', 'opponent_open', 'player_open', 'closed'
+    BLUE    = [0.2, 0.6, 0.9, 1] # dark blue
+    ORANGE  = [0.8, 0.6, 0.0, 1] # dark orange
+    GREEN   = [0.2, 0.8, 0.2, 1] # dark green
+    GRAY    = [0.3, 0.3, 0.3, 1] # dark gray
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
         self.background_normal = ''  # Remove default button background
-        self.background_color = [0.2, 0.6, 0.8, 1]  # Initialize with blue color
+        self.color = SectorButton.BLUE  # Initialize with blue color
+        self.font_size = '46sp'
+        self.bold = True
 
     def on_sector_state(self, instance, value):
+        self.background_normal = ''  # Remove default button background
         # Update button color based on state (dark theme)
         if value == 'normal':
-            self.background_color = [0.2, 0.4, 0.6, 1]  # Darker blue
+            self.color = SectorButton.BLUE
         elif value == 'opponent_open':
-            self.background_color = [0.6, 0.4, 0.0, 1]  # Darker orange
+            self.color = SectorButton.ORANGE
         elif value == 'player_open':
-            self.background_color = [0.2, 0.5, 0.2, 1]  # Darker green
+            self.color = SectorButton.GREEN
         else:  # closed
-            self.background_color = [0.3, 0.3, 0.3, 1]  # Dark gray
+            self.color = SectorButton.GRAY
 
 class SectorIndicator(BoxLayout):
     sector = StringProperty('')
@@ -612,7 +619,8 @@ class ReplayScreen(Screen):
         self.p1_indicators['Bull'] = p1_bull
         
         # Create Bull button (disabled during replay)
-        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points} pts]')
+        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points}]')
+        bull_btn.font_size = '28sp'
         bull_btn.id = 'btn_sector_bull'
         bull_btn.disabled = True
         self.sector_buttons['Bull'] = bull_btn
@@ -850,7 +858,8 @@ class GameScreen(Screen):
         self.p1_indicators['Bull'] = p1_bull
         
         # Create Bull button
-        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points} pts]')
+        bull_btn = SectorButton(text=f'Bull [{self.game.bull_points}]')
+        bull_btn.font_size = '28sp'
         bull_btn.id = 'btn_sector_bull'
         bull_btn.bind(on_release=lambda x: self.on_sector_press('Bull'))
         self.sector_buttons['Bull'] = bull_btn

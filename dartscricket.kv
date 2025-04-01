@@ -2,23 +2,23 @@
 #:import Spinner kivy.uix.spinner.Spinner
 #:import PlayerContainer main.PlayerContainer
 
-<SectorButton>:
+<SectorButton@Button>:
     background_normal: ''
-    color: (1, 1, 1, 1)  # White text
-    font_size: '28sp'
-    bold: True
-    font_name: 'assets/fonts/Roboto-Bold.ttf'
+########### properties set in the contructor, because they get overwritten from here
+#    color: 
+#    font_size:
+#    bold:
+#    font_name:
+#    color: 
     size_hint_y: None
     height: dp(50)
-    canvas.before:
-        Color:
-            rgba: [0.2, 0.5, 0.2, 1] if self.sector_state == 'player_open' else ([0.6, 0.4, 0.0, 1] if self.sector_state == 'opponent_open' else ([0.3, 0.3, 0.3, 1] if self.sector_state == 'closed' else [0.2, 0.4, 0.6, 1]))
+    background_color: [0.12, 0.12, 0.12, 1] 
     canvas.after:
-        Color:
+        Color: 
             rgba: [0.2, 0.5, 0.2, 1] if self.sector_state == 'player_open' else ([0.6, 0.4, 0.0, 1] if self.sector_state == 'opponent_open' else ([0.3, 0.3, 0.3, 1] if self.sector_state == 'closed' else [0.2, 0.4, 0.6, 1]))
         Line:
             width: 2
-            rectangle: self.x, self.y, self.width, self.height
+            rectangle: (self.x+2), (self.y+2), (self.width-4), (self.height-4)
 
 <Label>:
     font_size: '24sp'
@@ -219,13 +219,13 @@
                     id: highest_sector
                     text: '20'
                     values: [str(i) for i in range(20, 5, -1)]
-                    size_hint_x: 0.35
+                    size_hint_x: 0.15
                     font_size: '20sp'
                     on_text: root.update_lowest_sector()
                 
                 Label:
                     text: 'Lowest Sector:'
-                    size_hint_x: 0.2
+                    size_hint_x: 0.3
                     font_size: '20sp'
                 
                 Label:
@@ -360,7 +360,7 @@
                     Label:
                         id: player1_diff
                         text: '(-0)'
-                        font_size: '28sp'
+                        font_size: '18sp'
                         bold: True
                         size_hint_x: 0.4
 
@@ -413,7 +413,7 @@
                     Label:
                         id: player2_diff
                         text: '(-0)'
-                        font_size: '28sp'
+                        font_size: '18sp'
                         bold: True
                         size_hint_x: 0.4
 
@@ -672,7 +672,7 @@
                     Label:
                         id: player1_diff
                         text: '(-0)'
-                        font_size: '28sp'
+                        font_size: '18sp'
                         bold: True
                         size_hint_x: 0.4
 
@@ -725,7 +725,7 @@
                     Label:
                         id: player2_diff
                         text: '(-0)'
-                        font_size: '28sp'
+                        font_size: '18sp'
                         bold: True
                         size_hint_x: 0.4
 

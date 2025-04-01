@@ -61,9 +61,10 @@ v   ) fix nine marks in nine sectors, as up to three sectors with nine marks tot
     promted and failed with:
     + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
 
-    ) UI improvements
-    )) sectors have larger fonts (except Bull)
-    )) narrow diff font: (+100) overflows 
+v   ) UI improvements
+v   )) home screen: lowest sector: was too crammed
+v   )) sectors to have larger fonts (except Bull)
+v   )) narrow diff font: (+100) overflows 
     
 v   ) replays to stay until exit button is pressed
 v   )) replays have speed setting and pause button
