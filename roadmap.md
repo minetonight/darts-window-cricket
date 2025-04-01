@@ -78,5 +78,6 @@ v   )) text mode shows history on one line
 
     ) add player stats button
     )) group players names and have history for rounds, mprs, most scored sectors, least scored sectors
+v   )) delete button for test replays.
     )) 
 

@@ -304,6 +304,7 @@ class MessageScreen(Screen):
         self.is_message = False
         self.message_title = ''
         self.message_text = ''
+        self.on_confirm = None
 
     def scroll_to_top(self):
         """Scroll the message to the top"""
@@ -354,14 +355,30 @@ class MessageScreen(Screen):
         self.ids.title_label.text = 'Game History'
         self.scroll_to_top()
 
-    def show_message(self, title, message):
+    def show_message(self, title, message, on_confirm=None):
         """Show a message in the text screen"""
         self.is_message = True
         self.message_title = title
         self.message_text = message
+        self.on_confirm = on_confirm
         self.ids.title_label.text = title
         self.ids.history_text.text = message
         self.scroll_to_top()
+
+    def on_back(self):
+        """Handle back button press"""
+        if self.on_confirm:
+            # If this was a confirmation dialog, go back without confirming
+            self.on_confirm = None
+        self.manager.current = 'history'
+
+    def on_ok(self):
+        """Handle OK button press"""
+        if self.on_confirm:
+            # If this was a confirmation dialog, call the callback
+            self.on_confirm()
+            self.on_confirm = None
+        self.manager.current = 'history'
 
 class HistoryScreen(Screen):
     def __init__(self, **kwargs):
@@ -369,10 +386,10 @@ class HistoryScreen(Screen):
         self.game_history = GameHistory()
         self.selected_index = None
 
-    def show_message(self, title, message):
+    def show_message(self, title, message, callback=None):
         """Show a message in the text screen"""
         text_screen = self.manager.get_screen('message')
-        text_screen.show_message(title, message)
+        text_screen.show_message(title, message, callback)
         self.manager.current = 'message'
 
     def list_history_files(self):
@@ -453,6 +470,36 @@ class HistoryScreen(Screen):
             self.show_message('Success', f'History imported from:\n{zip_path}')
         else:
             self.show_message('Error', f'Failed to import history:\n{error}')
+
+    def delete_game(self):
+        """Delete the selected game file"""
+        if self.selected_index is None:
+            return
+            
+        try:
+            selected_file = self.ids.history_list.data[self.selected_index]['text']
+            success, error = self.game_history.delete_game(selected_file)
+            
+            if success:
+                # Refresh the list and show success message
+                self.list_history_files()
+            else:
+                self.show_message('Error', f'Failed to delete game:\n{error}')
+                
+        except Exception as e:
+            self.show_message('Error', f'Failed to delete game:\n{str(e)}')
+
+    def confirm_delete(self):
+        """Show confirmation dialog for deleting a game"""
+        if self.selected_index is None:
+            return
+            
+        selected_file = self.ids.history_list.data[self.selected_index]['text']
+        self.show_message(
+            'Confirm Delete',
+            f'Are you sure you want to delete:\n{selected_file}\n\nPress OK to delete or Back to cancel.',
+            self.delete_game
+        )
 
 class ReplayScreen(Screen):
     def __init__(self, **kwargs):

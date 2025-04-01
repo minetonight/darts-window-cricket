@@ -210,3 +210,12 @@ class GameHistory:
         filepath = os.path.join(self.base_dir, filename)
         with open(filepath, 'r') as f:
             return json.load(f)
+
+    def delete_game(self, filename):
+        """Delete a game file"""
+        filepath = os.path.join(self.base_dir, filename)
+        try:
+            os.remove(filepath)
+            return True, None
+        except Exception as e:
+            return False, str(e)

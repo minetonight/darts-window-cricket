@@ -495,13 +495,23 @@
 
             Button:
                 text: 'Back'
-                size_hint_x: 0.33
+                size_hint_x: 0.23
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)
                 color: (0.9, 0.9, 0.9, 1)
                 font_size: '18sp'
                 bold: True
                 on_release: root.manager.current = 'data_input'
+            Button:
+                text: '🗑️'
+                size_hint_x: 0.1
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.3, 0.3, 1) # Red-ish text
+                font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
+                font_size: '28sp'
+                bold: True
+                on_release: root.confirm_delete()
 
             Button:
                 text: 'Read Text'
@@ -784,12 +794,14 @@
                 valign: 'top'   # Start from top
                 padding: '10dp'  # Add padding around text
 
-        Button:
-            text: 'Back'
+        BoxLayout:
             size_hint_y: 0.1
-            background_normal: ''
-            background_color: (0.3, 0.3, 0.3, 1)
-            color: (0.9, 0.9, 0.9, 1)
-            font_size: '18sp'
-            bold: True
-            on_release: root.manager.current = 'history' 
+            spacing: '10dp'
+            Button:
+                text: 'OK'
+                on_release: root.on_ok()
+                size_hint_x: 0.5
+            Button:
+                text: 'Back'
+                on_release: root.on_back()
+                size_hint_x: 0.5 
