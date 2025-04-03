@@ -398,51 +398,80 @@ class HistoryScreen(Screen):
 
     def format_game_data(self, game_data):
         """Format game data into displayable text"""
-        players = game_data['players']
-        settings = game_data['settings']
-        
-        # Build the history text
-        text = []
-        
-        # Add game info header
-        text.append(f"{players[0]['name']} vs {players[1]['name']}")
-        text.append(f"{players[0]['mpr']:.2f} vs {players[1]['mpr']:.2f}")
-        rounds = int((len(game_data['history']) + 1) / 2)
-        text.append(f"Game of {rounds} rounds")
-        text.append(f"Sectors: {settings['highest_sector']} to {settings['lowest_sector']}")
-        text.append(f"Bull Points: {settings['bull_points']}")
-        text.append("")  # Empty line for spacing
-        
-        # Add round history
-        for round_num, round_marks in enumerate(game_data['history'], 1):
-            text.append(f"Round {int((round_num+1)/2)} for {players[round_marks[0]['player']]['name']}")
+        try:
+            # Validate required fields
+            if not isinstance(game_data, dict):
+                return "Invalid game data format"
+                
+            players = game_data.get('players', [])
+            if len(players) < 2:
+                return "Invalid player data"
+                
+            settings = game_data.get('settings', {})
+            history = game_data.get('history', [])
             
-            line_text = f"    "
-            for mark in round_marks:
-                sector = mark['sector']
-                points = mark['points']
-                scoring = mark['was_scoring']
-                if scoring:
-                    line_text += f"(+{points})"
+            # Build the history text
+            text = []
+            
+            # Add game info header
+            text.append(f"{players[0].get('name', 'Unknown')} vs {players[1].get('name', 'Unknown')}")
+            text.append(f"{players[0].get('mpr', 0):.2f} vs {players[1].get('mpr', 0):.2f}")
+            
+            # Calculate rounds safely
+            rounds = int((len(history) + 1) / 2) if history else 0
+            text.append(f"Game of {rounds} rounds")
+            
+            # Add settings info
+            text.append(f"Sectors: {settings.get('highest_sector', '?')} to {settings.get('lowest_sector', '?')}")
+            text.append(f"Bull Points: {settings.get('bull_points', '?')}")
+            text.append("")  # Empty line for spacing
+            
+            # Add round history
+            current_round = 1
+            for round_num, round_marks in enumerate(history, 1):
+                # Determine which player's turn it is
+                player_idx = 0 if round_num % 2 == 1 else 1
+                player_name = players[player_idx].get('name', 'Unknown') if player_idx < len(players) else 'Unknown'
+                
+                text.append(f"Round {current_round} for {player_name}")
+                
+                if not round_marks:
+                    text.append("    --- (No marks)")
                 else:
-                    line_text += f"{sector}"
-                line_text += ", "
-            # remove the last comma
-            line_text = line_text[:-2]
-            text.append(line_text)
-            text.append("")  # Empty line between rounds
+                    line_text = "    "
+                    for mark in round_marks:
+                        sector = mark.get('sector', '?')
+                        points = mark.get('points', 0)
+                        scoring = mark.get('was_scoring', False)
+                        if scoring:
+                            line_text += f"(+{points})"
+                        else:
+                            line_text += f"{sector}"
+                        line_text += ", "
+                    # remove the last comma
+                    line_text = line_text[:-2]
+                    text.append(line_text)
+                
+                text.append("")  # Empty line between rounds
+                
+                # Only increment round counter when we've seen both players' turns
+                if round_num % 2 == 0:
+                    current_round += 1
+                
+            return "\n".join(text)
             
-        return "\n".join(text)
+        except Exception as e:
+            return f"Error formatting game data: {str(e)}"
 
     def list_history_files(self):
-        """Load the list of game history files"""
+        """List all history files in the RecycleView"""
         try:
             files = self.game_history.get_history_files()
-            self.ids.history_list.data = [
-                {'text': f, 'selected': False} for f in files
-            ]
+            self.ids.history_list.data = [{'text': f, 'selected': False} for f in files]
+            # Clear selection when refreshing the list
+            self.selected_index = None
         except Exception as e:
-            self.show_message('Error', f'Failed to load history:\n{str(e)}')
+            self.show_message('Error', f'Failed to list history files:\n{str(e)}')
 
     def select_with_touch(self, index, touch):
         """Handle selection of items in the RecycleView"""
@@ -464,6 +493,11 @@ class HistoryScreen(Screen):
             return
             
         try:
+            # Validate that the index is within bounds
+            if self.selected_index >= len(self.ids.history_list.data):
+                self.selected_index = None
+                return
+                
             selected_file = self.ids.history_list.data[self.selected_index]['text']
             game_data = self.game_history.load_game(selected_file)
             
