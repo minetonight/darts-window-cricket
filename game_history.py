@@ -243,16 +243,25 @@ class GameHistory:
             return None, f"Failed to import history: {str(e)}"
 
     def get_history_files(self):
-        """Get list of history files sorted by modification time"""
-        # Get list of files with their modification times
+        """Get list of history files sorted by the timestamp in the filename"""
+        # Get list of files
         files = []
         for f in os.listdir(self.base_dir):
             if (f.endswith('.json') or f.endswith('.txt')) and f != 'metadata.json':
-                filepath = os.path.join(self.base_dir, f)
-                mtime = os.path.getmtime(filepath)
-                files.append((f, mtime))
+                # Extract timestamp from filename
+                try:
+                    # Find the "on" part and get the timestamp
+                    timestamp_str = f.split(' on ')[1].split('.')[0]
+                    # Parse the timestamp
+                    timestamp = datetime.strptime(timestamp_str, '%Y%m%d_%H%M')
+                    files.append((f, timestamp))
+                except (IndexError, ValueError):
+                    # If timestamp parsing fails, use file modification time as fallback
+                    filepath = os.path.join(self.base_dir, f)
+                    mtime = os.path.getmtime(filepath)
+                    files.append((f, datetime.fromtimestamp(mtime)))
         
-        # Sort by modification time, most recent first
+        # Sort by timestamp, most recent first
         files.sort(key=lambda x: x[1], reverse=True)
         
         # Return just the filenames
