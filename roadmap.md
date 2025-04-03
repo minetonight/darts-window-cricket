@@ -7,7 +7,6 @@ v   ) setup nice fonts
 
 v   ) add vusual hit counter in sectors with dots, for current round only
 
-
 v   ) the game counts the rounds
 v   ) the game shows the mpr marks per round next to the diff for each player 
 v   )) mpr is with 2 decimals: 1.92, not 1.9
@@ -38,7 +37,6 @@ v   )) files are sorted by modification time
 
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players
-    )) add step forward and step backwards buttons when replay is paused
 
 v   ) add ScreenManager and two Screens: data input and game screen
 v   )) text input sets player 1 and player 2 names
@@ -86,9 +84,17 @@ v   )) android does not ask for permissions
     promted and failed with:
     + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
 
+
+    )) replays: add step forward and step backwards buttons, that are enablec when a replay is paused
+
+    ) between undo buttons add abort match icon that leaves the current game and updates the metadata and saves a game file with name starting with aborted
+    )) add continue aborted matches on homescreen that loads list of aborted game and lets you pick.
+    ))) the list have back, delete and continue buttons below.
+
     ) bugfixes:
 v   )) 3.0.0 - undo opponents turn was adding extra phantom scores.
 v   )) 3.0.0 - replay end kicks you out to homescreen, not to history
-    )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
 v   )) double tap to use a list item in replays or stats
-    )) 
+v   )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
+v   )) sort the files by the date and time written in the filenames
+
