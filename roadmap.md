@@ -36,9 +36,6 @@ v   )) if there is a history file, load the latest players names from the file t
 v   )) read history as text in the app
 v   )) files are sorted by modification time
 
-    ) export game files locally
-    )) android does not ask for permissions
-
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players
 
@@ -52,14 +49,12 @@ v   )) data input screen has start game button
 v   )) the sectors values and points given are updated with values from the data input screen
 v   )) add switch positions button below players names, that swaps the texts in the two input fields
 
-v    )) when the game ends, the next player button shows "new game?" text and leads to data input screen with the last game values preloaded
+v   )) when the game ends, the next player button shows "new game?" text and leads to data input screen with the last game values preloaded
 v   ))) all necessary players game variables are reset with the start of a new game
 
 v   ) fix marks in more than three different sectors.
 v   ) fix nine marks in nine sectors, as up to three sectors with nine marks total.
-    )) add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}
-    promted and failed with:
-    + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
+
 
 v   ) UI improvements
 v   )) home screen: lowest sector: was too crammed
@@ -74,7 +69,6 @@ v   )) use json files, read txt too
 v   )) file name as [rounds] [player1]{mpr1} vs [player2]{mpr2} on [date].json
 v   )) text mode shows round and mpr
 v   )) text mode shows history on one line
-    ))) old  txt file - exc for second player fix
 
 v   ) add player stats button
 v   )) group players by name 
@@ -84,3 +78,15 @@ v   )) avg min and max mprs,
 v   )) sectors stats, 
 v   )) delete button for test replays.
 
+    ) export game files locally
+    )) android does not ask for permissions
+
+    ) add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}
+    promted and failed with:
+    + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
+
+    ) bugfixes:
+v   )) 3.0.0 - undo opponents turn was adding extra phantom scores.
+v   )) 3.0.0 - replay end kicks you out to homescreen, not to history
+    )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
+    )) 

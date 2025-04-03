@@ -181,13 +181,11 @@ class CricketGame:
         current.current_round_sector_hits = {str(i): 0 for i in range(self.lowest_sector, self.highest_sector + 1)}
         current.current_round_sector_hits['Bull'] = 0
         
-        # Restore sector hits and scores from previous round
+        # Restore sector hits from previous round
         for mark in previous_round:
             sector = mark['sector']
             current.current_round_sector_hits[sector] += 1
             current.sectors_hit_this_round.add(sector)
-            if mark['was_scoring']:
-                current.score += mark['points']
         
         # Update MPR
         current.mpr = current.calculate_mpr()
@@ -608,7 +606,7 @@ class ReplayScreen(Screen):
         if self.replay_event:
             self.replay_event.cancel()
         self.is_replaying = False
-        self.manager.current = 'data_input'
+        self.manager.current = 'history'
         
 
     def replay_next_mark(self, dt):
