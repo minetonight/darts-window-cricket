@@ -276,44 +276,70 @@ class SectorIndicator(BoxLayout):
         dots = ' '.join(dots[i:i+3] for i in range(0, len(dots), 3))
         self.ids.dots_label.text = dots
 
-class HistoryItem(RecycleDataViewBehavior, BoxLayout):
-    """Add selection support to the Label"""
+class SelectableItem(RecycleDataViewBehavior, BoxLayout):
+    """Base class for selectable items with double tap support"""
     index = None
     selected = BooleanProperty(False)
     selectable = BooleanProperty(True)
     text = StringProperty('')
+    _last_tap_times = {}  # Class-level dictionary to store last tap times
 
     def refresh_view_attrs(self, rv, index, data):
         """Catch and handle the view changes"""
         self.index = index
-        self.text = data['text']
+        self.text = data.get('text', '')
         self.selected = data.get('selected', False)
 
     def on_touch_down(self, touch):
-        """Add selection on touch down"""
-        if super(HistoryItem, self).on_touch_down(touch):
+        """Add selection on touch down and handle double tap"""
+        if super(SelectableItem, self).on_touch_down(touch):
             return True
         if self.collide_point(*touch.pos) and self.selectable:
-            # Get the RecycleView parent
+            current_time = Clock.get_time()
+            # Check for double tap (within 0.3 seconds)
+            if current_time - self._last_tap_times.get(self.text, 0) < 0.3:
+                # Get the RecycleView parent
+                rv = self.parent.parent
+                # Find the parent screen by traversing up the widget tree
+                parent = rv
+                while parent is not None:
+                    if isinstance(parent, self.get_target_screen_class()):
+                        self.handle_double_tap(parent)
+                        return True
+                    parent = parent.parent
+            # Update last_tap_time for both single tap and failed double tap
+            self._last_tap_times[self.text] = current_time
             rv = self.parent.parent
-            # Find the HistoryScreen by traversing up the widget tree
             parent = rv
             while parent is not None:
-                if isinstance(parent, HistoryScreen):
+                if isinstance(parent, self.get_target_screen_class()):
                     return parent.select_with_touch(self.index, touch)
                 parent = parent.parent
         return False
 
-    def apply_selection(self, rv, index, is_selected):
-        """Respond to the selection of items in the view"""
-        self.selected = is_selected
-        # Find the HistoryScreen by traversing up the widget tree
-        parent = rv
-        while parent is not None:
-            if isinstance(parent, HistoryScreen):
-                parent.selected_index = index if is_selected else None
-                break
-            parent = parent.parent
+    def get_target_screen_class(self):
+        """Return the target screen class for this item type"""
+        raise NotImplementedError("Subclasses must implement get_target_screen_class")
+
+    def handle_double_tap(self, screen):
+        """Handle double tap action"""
+        raise NotImplementedError("Subclasses must implement handle_double_tap")
+
+class HistoryItem(SelectableItem):
+    """Item for history list with replay on double tap"""
+    def get_target_screen_class(self):
+        return HistoryScreen
+
+    def handle_double_tap(self, screen):
+        screen.replay_selected_file()
+
+class PlayerStatsItem(SelectableItem):
+    """Item for player stats list with details on double tap"""
+    def get_target_screen_class(self):
+        return PlayerStatsScreen
+
+    def handle_double_tap(self, screen):
+        screen.show_player_details()
 
 class MessageScreen(Screen):
     def __init__(self, **kwargs):
@@ -761,46 +787,6 @@ class ReplayScreen(Screen):
             
             self.p1_indicators[sector].update_marks(self.game.players[0].sectors[sector], p1_current_hits)
             self.p2_indicators[sector].update_marks(self.game.players[1].sectors[sector], p2_current_hits)
-
-class PlayerStatsItem(RecycleDataViewBehavior, BoxLayout):
-    """Add selection support to the Label"""
-    index = None
-    selected = BooleanProperty(False)
-    selectable = BooleanProperty(True)
-    text = StringProperty('')
-
-    def refresh_view_attrs(self, rv, index, data):
-        """Catch and handle the view changes"""
-        self.index = index
-        self.text = data.get('text', '')
-        self.selected = data.get('selected', False)
-
-    def on_touch_down(self, touch):
-        """Add selection on touch down"""
-        if super(PlayerStatsItem, self).on_touch_down(touch):
- 
-            return True
-        if self.collide_point(*touch.pos) and self.selectable:
-            # Get the RecycleView parent
-            rv = self.parent.parent
-            # Find the PlayerStatsScreen by traversing up the widget tree
-            parent = rv
-            while parent is not None:
-                if isinstance(parent, PlayerStatsScreen):
-                    return parent.select_with_touch(self.index, touch)
-                parent = parent.parent
-        return False
-
-    def apply_selection(self, rv, index, is_selected):
-        """Respond to the selection of items in the view"""
-        self.selected = is_selected
-        # Find the PlayerStatsScreen by traversing up the widget tree
-        parent = rv
-        while parent is not None:
-            if isinstance(parent, PlayerStatsScreen):
-                parent.selected_index = index if is_selected else None
-                break
-            parent = parent.parent
 
 class PlayerStatsScreen(Screen):
     def __init__(self, **kwargs):
