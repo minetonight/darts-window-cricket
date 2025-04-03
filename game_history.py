@@ -98,47 +98,86 @@ class GameHistory:
             return True
             
         try:
-            from android.permissions import request_permissions, Permission
+            from android.permissions import request_permissions, Permission, check_permission
             from jnius import autoclass
             
             # Get Android version
             Build = autoclass('android.os.Build')
-            if Build.VERSION.SDK_INT >= 29:  # Android 10 and above
-                # Request MANAGE_EXTERNAL_STORAGE permission
-                Environment = autoclass('android.os.Environment')
-                if not Environment.isExternalStorageManager():
-                    Intent = autoclass('android.content.Intent')
-                    Settings = autoclass('android.provider.Settings')
-                    activity = autoclass('org.kivy.android.PythonActivity').mActivity
-                    intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
-                    activity.startActivity(intent)
-                    return False
-                return True
+            VERSION = autoclass('android.os.Build$VERSION')
+            sdk_version = VERSION.SDK_INT
+            
+            if sdk_version >= 29:  # Android 10 and above
+                try:
+                    # Request MANAGE_EXTERNAL_STORAGE permission
+                    Environment = autoclass('android.os.Environment')
+                    if not Environment.isExternalStorageManager():
+                        Intent = autoclass('android.content.Intent')
+                        Settings = autoclass('android.provider.Settings')
+                        activity = autoclass('org.kivy.android.PythonActivity').mActivity
+                        
+                        # Get package name
+                        package_name = activity.getPackageName()
+                        
+                        # Create and configure intent
+                        intent = Intent(Settings.ACTION_MANAGE_APP_ALL_FILES_ACCESS_PERMISSION)
+                        uri = autoclass('android.net.Uri').parse(f"package:{package_name}")
+                        intent.setData(uri)
+                        
+                        # Start activity
+                        activity.startActivity(intent)
+                        raise Exception(f"Android {sdk_version}: Please grant 'All Files Access' permission in Android settings")
+                    else:
+                        return True
+                except Exception as e:
+                    raise Exception(f"Android {sdk_version} permission request failed: {str(e)}")
             else:
-                # For older Android versions, request read/write permissions
-                permissions = [
-                    Permission.READ_EXTERNAL_STORAGE,
-                    Permission.WRITE_EXTERNAL_STORAGE
-                ]
-                request_permissions(permissions)
-                return True
+                try:
+                    # For older Android versions, request read/write permissions
+                    permissions = [
+                        Permission.READ_EXTERNAL_STORAGE,
+                        Permission.WRITE_EXTERNAL_STORAGE
+                    ]
+                    
+                    # Check current permissions
+                    current_permissions = {p: check_permission(p) for p in permissions}
+                    
+                    if all(current_permissions.values()):
+                        return True
+                    
+                    # Request permissions and wait for result
+                    request_permissions(permissions)
+                    
+                    # Check new permissions
+                    new_permissions = {p: check_permission(p) for p in permissions}
+                    
+                    if all(new_permissions.values()):
+                        return True
+                    else:
+                        raise Exception(f"Android {sdk_version}: Please grant storage permissions in app settings")
+                        
+                except Exception as e:
+                    raise Exception(f"Android {sdk_version} legacy permission request failed: {str(e)}")
+                
         except Exception as e:
-            # Log the error but don't crash
-            print(f"Failed to request permissions: {str(e)}")
-            return False
+            raise Exception(f"Storage permission request failed: {str(e)}")
 
     def export_history(self):
         """Export game history to a zip file"""
         try:
             # Request permissions if on Android
-            if platform == 'android' and not self.request_storage_permissions():
-                return None, "Storage permission denied"
+            if platform == 'android':
+                try:
+                    self.request_storage_permissions()
+                except Exception as e:
+                    return None, str(e)
 
             # Create a temporary directory for the zip file
             if platform == 'android':
                 # On Android, use the primary external storage
                 from android.storage import primary_external_storage_path
-                export_dir = os.path.join(primary_external_storage_path(), 'Download')
+                export_dir = os.path.join(primary_external_storage_path(), 'Download', 'window_cricket')
+                # Ensure directory exists
+                os.makedirs(export_dir, exist_ok=True)
             else:
                 # On other platforms, use the current directory
                 export_dir = os.path.expanduser('~')
@@ -158,20 +197,27 @@ class GameHistory:
 
             return zip_path, None
 
+        except PermissionError:
+            return None, "eh(), exc: Storage permission denied. Please grant storage permissions in Android settings"
         except Exception as e:
-            return None, str(e)
+            return None, f"Failed to export history: {str(e)}"
 
     def import_history(self):
         """Import game history from a zip file"""
         try:
             # Request permissions if on Android
-            if platform == 'android' and not self.request_storage_permissions():
-                return None, "Storage permission denied"
+            if platform == 'android':
+                try:
+                    self.request_storage_permissions()
+                except Exception as e:
+                    return None, str(e)
 
             if platform == 'android':
                 # On Android, use the primary external storage
                 from android.storage import primary_external_storage_path
-                import_dir = os.path.join(primary_external_storage_path(), 'Download')
+                import_dir = os.path.join(primary_external_storage_path(), 'Download', 'window_cricket')
+                # Ensure directory exists
+                os.makedirs(import_dir, exist_ok=True)
             else:
                 # On other platforms, use the current directory
                 import_dir = os.path.expanduser('~')
@@ -179,7 +225,7 @@ class GameHistory:
             # Find the most recent zip file in the directory
             zip_files = [f for f in os.listdir(import_dir) if f.startswith('window_cricket_history_') and f.endswith('.zip')]
             if not zip_files:
-                raise Exception(f'No history zip files found in {import_dir}')
+                return None, f'No history zip files found in {import_dir}'
 
             # Sort by modification time, most recent first
             latest_zip = max(zip_files, key=lambda f: os.path.getmtime(os.path.join(import_dir, f)))
@@ -191,8 +237,10 @@ class GameHistory:
 
             return zip_path, None
 
+        except PermissionError:
+            return None, "ih(), exc: Storage permission denied. Please grant storage permissions in Android settings"
         except Exception as e:
-            return None, str(e)
+            return None, f"Failed to import history: {str(e)}"
 
     def get_history_files(self):
         """Get list of history files sorted by modification time"""

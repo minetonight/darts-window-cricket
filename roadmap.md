@@ -38,6 +38,7 @@ v   )) files are sorted by modification time
 
 v   ) replay game function
 v   )) from history file, call functions that add marks and switch players
+    )) add step forward and step backwards buttons when replay is paused
 
 v   ) add ScreenManager and two Screens: data input and game screen
 v   )) text input sets player 1 and player 2 names
@@ -78,8 +79,8 @@ v   )) avg min and max mprs,
 v   )) sectors stats, 
 v   )) delete button for test replays.
 
-    ) export game files locally
-    )) android does not ask for permissions
+v   ) export game files locally
+v   )) android does not ask for permissions
 
     ) add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}
     promted and failed with:
@@ -89,4 +90,5 @@ v   )) delete button for test replays.
 v   )) 3.0.0 - undo opponents turn was adding extra phantom scores.
 v   )) 3.0.0 - replay end kicks you out to homescreen, not to history
     )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
+v   )) double tap to use a list item in replays or stats
     )) 
