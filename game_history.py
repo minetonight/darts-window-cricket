@@ -242,24 +242,33 @@ class GameHistory:
         except Exception as e:
             return None, f"Failed to import history: {str(e)}"
 
-    def get_history_files(self):
-        """Get list of history files sorted by the timestamp in the filename"""
+    def get_history_files(self, completed_only=True):
+        """Get list of history files sorted by the timestamp in the filename
+        
+        Args:
+            completed_only (bool): If True, return only completed games (default).
+                                 If False, return only uncompleted (aborted) games.
+        """
         # Get list of files
         files = []
+        aborted_only = not completed_only
         for f in os.listdir(self.base_dir):
             if (f.endswith('.json') or f.endswith('.txt')) and f != 'metadata.json':
-                # Extract timestamp from filename
-                try:
-                    # Find the "on" part and get the timestamp
-                    timestamp_str = f.split(' on ')[1].split('.')[0]
-                    # Parse the timestamp
-                    timestamp = datetime.strptime(timestamp_str, '%Y%m%d_%H%M')
-                    files.append((f, timestamp))
-                except (IndexError, ValueError):
-                    # If timestamp parsing fails, use file modification time as fallback
-                    filepath = os.path.join(self.base_dir, f)
-                    mtime = os.path.getmtime(filepath)
-                    files.append((f, datetime.fromtimestamp(mtime)))
+                # Check if file matches the requested completion status
+                is_aborted = f.startswith('aborted_')
+                if (completed_only and not is_aborted) or (aborted_only and is_aborted):
+                    # Extract timestamp from filename
+                    try:
+                        # Find the "on" part and get the timestamp
+                        timestamp_str = f.split(' on ')[1].split('.')[0]
+                        # Parse the timestamp
+                        timestamp = datetime.strptime(timestamp_str, '%Y%m%d_%H%M')
+                        files.append((f, timestamp))
+                    except (IndexError, ValueError):
+                        # If timestamp parsing fails, use file modification time as fallback
+                        filepath = os.path.join(self.base_dir, f)
+                        mtime = os.path.getmtime(filepath)
+                        files.append((f, datetime.fromtimestamp(mtime)))
         
         # Sort by timestamp, most recent first
         files.sort(key=lambda x: x[1], reverse=True)
@@ -280,3 +289,56 @@ class GameHistory:
             os.remove(filepath)
             return True, None
         return False, "File not found"
+
+    def save_aborted_game(self, game):
+        """Save an aborted game to a file"""
+        try:
+            # Create filename with player names and date
+            rounds = int((len(game.mark_history) + 1) / 2)
+            timestamp = datetime.now().strftime('%Y%m%d_%H%M')
+            filename = f"aborted_R{rounds} {game.players[0].name}{{{game.players[0].mpr:.2f}}} vs {game.players[1].name}{{{game.players[1].mpr:.2f}}} on {timestamp}.json"
+            filepath = os.path.join(self.base_dir, filename)
+            
+            # Prepare game data for serialization
+            game_data = {
+                'players': [
+                    {'name': game.players[0].name, 'score': game.players[0].score, 'mpr': game.players[0].mpr},
+                    {'name': game.players[1].name, 'score': game.players[1].score, 'mpr': game.players[1].mpr},
+                ],
+                'winner': None,  # No winner for aborted games
+                'settings': {
+                    'highest_sector': game.highest_sector,
+                    'lowest_sector': game.lowest_sector,
+                    'bull_points': game.bull_points
+                },
+                'history': []
+            }
+            
+            # Add each round's marks
+            for round_marks in game.mark_history:
+                round_data = []
+                for mark in round_marks:
+                    round_data.append({
+                        'player': mark['player'],
+                        'sector': mark['sector'],
+                        'was_scoring': mark['was_scoring'],
+                        'points': mark['points']
+                    })
+                game_data['history'].append(round_data)
+            
+            # Write to file
+            with open(filepath, 'w') as f:
+                json.dump(game_data, f, indent=2)
+            
+            # Update metadata with latest game info
+            self.metadata_store.put('latest_game', 
+                player1_name=game.players[0].name,
+                player2_name=game.players[1].name,
+                timestamp=timestamp,
+                filepath=filepath
+            )
+            
+            return filepath, None
+            
+        except Exception as e:
+            return None, str(e)

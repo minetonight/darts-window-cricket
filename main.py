@@ -365,6 +365,12 @@ class MessageScreen(Screen):
         self.on_confirm = on_confirm
         self.caller_screen = caller_screen
         self.ids.title_label.text = title
+        # self.ids.history_text.text = message
+        # count message lines and add lines up to 500 lines
+        # REASON: the message text screen label is created once and some messages longer than the first message are not fully displayed
+        lines = message.split('\n')
+        for line in range(0, 500-len(lines)):
+            message += '\n' # add empty lines to the message
         self.ids.history_text.text = message
         self.scroll_to_top()
 
@@ -1421,6 +1427,49 @@ class GameScreen(Screen):
             
         if self.game.undo_last_throw():
             self.update_display()
+
+    def show_message(self, title, message, callback=None):
+        """Show a message in the text screen"""
+        text_screen = self.manager.get_screen('message')
+        text_screen.show_message(title, message, callback, caller_screen='game')
+        self.manager.current = 'message'
+
+    def abort_match(self):
+        """Show confirmation dialog for aborting the match"""
+        self.show_message(
+            'Abort Match',
+            'Are you sure you want to abort the current match?\n\nPress OK to abort or Back to cancel.',
+            self.confirm_abort
+        )
+
+    def confirm_abort(self):
+        """Save the aborted game and return to data input screen"""
+        if not self.game:
+            return
+
+        # Save game with 'aborted' prefix using GameHistory
+        filepath, error = self.game_history.save_aborted_game(self.game)
+        
+        if filepath:
+            # Show success message
+            self.ids.file_messages_label.color = [0, 1, 0, 1]  # green
+            two_line_path = '\n'.join(filepath[i:i+len(filepath)//2] for i in range(0, len(filepath), len(filepath)//2))
+            self.ids.file_messages_label.text = f"Aborted game saved to:\n{two_line_path}"
+        else:
+            # Show error message
+            self.ids.file_messages_label.color = [1, 0, 0, 1]  # red
+            self.ids.file_messages_label.text = f"Failed to save aborted game: {error}"
+        
+
+        # essential to have this here, otherwise the message logic will set the current screen to game screen
+        # and then the return_to_data_input will not set it to data_input screen
+        Clock.schedule_once(lambda dt: self.return_to_data_input(), 1) # pause 1s to allow the message to be read
+
+    def return_to_data_input(self):
+        """Return to data input screen"""
+        self.ids.file_messages_label.text = ""
+        self.manager.current = 'data_input'
+
 
 class DartsCricketApp(App):
     def build(self):

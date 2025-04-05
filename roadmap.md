@@ -91,8 +91,8 @@ v   )) android does not ask for permissions
    ))) - I dont see the marks dots appear all at once and disappear one by one going backwards.
         
 
-    ) between undo buttons add abort match icon that leaves the current game and updates the metadata and saves a game file with name starting with aborted
-    )) add continue aborted matches on homescreen that loads list of aborted game and lets you pick.
+v   ) between undo buttons add abort match icon that leaves the current game and updates the metadata and saves a game file with name starting with aborted
+    )) add continue aborted matches on homescreen that loads list of aborted games and lets you pick.
     ))) the list have back, delete and continue buttons below.
 
     ) bugfixes:
@@ -101,4 +101,5 @@ v   )) 3.0.0 - replay end kicks you out to homescreen, not to history
 v   )) double tap to use a list item in replays or stats
 v   )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
 v   )) sort the files by the date and time written in the filenames
+v   )) 3.5.0 - messages label is fixed to the size of the first message. Shit solution: make all messages up to 500 lines at least. 
 
