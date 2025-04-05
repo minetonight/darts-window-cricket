@@ -618,7 +618,7 @@
                 text: 'Replay'
                 font_size: '24sp'
                 bold: True
-                size_hint_x: 0.4
+                size_hint_x: 0.2
 
             Spinner:
                 id: replay_speed
@@ -629,9 +629,22 @@
                 on_text: root.update_replay_speed()
 
             Button:
+                text: '⏮️'
+                id: step_back_button
+                size_hint_x: 0.1
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.3, 0.3, 1)  # Red-ish text
+                font_size: '24sp'
+                font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
+                bold: True
+                disabled: True
+                on_release: root.step_backward()
+
+            Button:
                 text: '⏸️'
                 id: pause_button
-                size_hint_x: 0.2
+                size_hint_x: 0.1
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)
                 color: (0.9, 0.3, 0.3, 1)  # Red-ish text
@@ -641,9 +654,22 @@
                 on_release: root.toggle_pause()
 
             Button:
+                text: '⏭️'
+                id: step_forward_button
+                size_hint_x: 0.1
+                background_normal: ''
+                background_color: (0.3, 0.3, 0.3, 1)
+                color: (0.9, 0.3, 0.3, 1)  # Red-ish text
+                font_size: '24sp'
+                font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
+                bold: True
+                disabled: True
+                on_release: root.step_forward()
+
+            Button:
                 text: '⏹️'
                 id: stop_button
-                size_hint_x: 0.2
+                size_hint_x: 0.1
                 background_normal: ''
                 background_color: (0.3, 0.3, 0.3, 1)
                 color: (0.9, 0.3, 0.3, 1)  # Red-ish text

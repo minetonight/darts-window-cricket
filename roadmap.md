@@ -85,7 +85,11 @@ v   )) android does not ask for permissions
     + "lets go to next level. how to add complex check for impossible cases of: {1x 20; 1x 19; 4x 18}. try to count also darts used and dont allow more than three darts"
 
 
-    )) replays: add step forward and step backwards buttons, that are enablec when a replay is paused
+~  )) replays: add step forward and step backwards buttons, that are enabled when a replay is paused
+   ))) - does not remove checkmarks from older rounds.
+   ))) - I dont see the tick marks disappearing going backwards. 
+   ))) - I dont see the marks dots appear all at once and disappear one by one going backwards.
+        
 
     ) between undo buttons add abort match icon that leaves the current game and updates the metadata and saves a game file with name starting with aborted
     )) add continue aborted matches on homescreen that loads list of aborted game and lets you pick.

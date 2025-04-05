@@ -226,6 +226,7 @@ class SectorButton(Button):
     ORANGE  = [0.8, 0.6, 0.0, 1] # dark orange
     GREEN   = [0.2, 0.8, 0.2, 1] # dark green
     GRAY    = [0.3, 0.3, 0.3, 1] # dark gray
+    WHITE   = [1, 1, 1, 1] # white
 
     def __init__(self, **kwargs):
         super().__init__(**kwargs)
@@ -604,13 +605,113 @@ class ReplayScreen(Screen):
             # Resume the replay
             self.is_paused = False
             self.ids.pause_button.text = '⏸️'
+            self.ids.step_back_button.disabled = False # TODO: enable when implemented working back button 
+            self.ids.step_forward_button.disabled = True
             self.replay_event = Clock.schedule_interval(self.replay_next_mark, self.pause_duration)
         else:
             # Pause the replay
             self.is_paused = True
             self.ids.pause_button.text = '▶️'
+            self.ids.step_back_button.disabled = False
+            self.ids.step_forward_button.disabled = False
             if self.replay_event:
                 self.replay_event.cancel()
+
+    def step_forward(self):
+        """Step forward one mark in the replay"""
+        if not self.is_paused or not self.is_replaying:
+            return
+            
+        if self.current_round >= len(self.game_history):
+            return
+            
+        current_round = self.game_history[self.current_round]
+        
+        if self.current_mark >= len(current_round):
+            # Move to next round
+            self.current_round += 1
+            self.current_mark = 0
+            if self.current_round < len(self.game_history):
+                self.game.switch_player()
+                self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
+            else:
+                self.ids.stop_button.text = '🚪'
+                self.is_replay_finished = True
+            return
+            
+        # Replay the current mark
+        mark = current_round[self.current_mark]
+        self.game.add_hit(mark['sector'])
+        self.current_mark += 1
+        self.update_display()
+
+    def step_backward(self):
+        """Step backward one mark in the replay
+        Does not work:
+         - does not remove checkmarks from older rounds.
+         - I dont see the tick marks disappearing going backwards. 
+         - I dont see the marks dots appear all at once and disappear one by one going backwards.
+        """
+        # if not self.is_paused or not self.is_replaying:
+        #     return
+            
+        # if self.current_round < 0:
+        #     return
+            
+        # current_round = self.game_history[self.current_round]
+        
+        
+        # if self.current_mark <= 0:
+        #     # Move to previous round
+        #     if self.current_round > 0:
+        #         # Get the previous round from history
+        #         previous_round = self.game_history[self.current_round - 1]
+                
+        #         # Undo all marks in current round
+        #         while self.game.current_round_marks[-1]:
+        #             self.game.undo_last_mark()
+                
+        #         # Remove the empty current round
+        #         self.game.current_round_marks.pop()
+                
+        #         # Switch back to previous player
+        #         self.current_round -= 1
+        #         self.game.switch_player()
+                
+        #         # Decrement rounds for the current player (since we're going back)
+        #         self.game.players[self.game.current_player].rounds -= 1
+                
+        #         # Restore previous player's round
+        #         self.game.current_round_marks.append(previous_round)
+                
+        #         # Restore previous player's state
+        #         current = self.game.players[self.game.current_player]
+        #         current.marks_this_round = len(previous_round)
+        #         current.sectors_hit_this_round.clear()
+        #         current.current_round_sector_hits = {str(i): 0 for i in range(self.game.lowest_sector, self.game.highest_sector + 1)}
+        #         current.current_round_sector_hits['Bull'] = 0
+                
+        #         # Restore sector hits from previous round
+        #         for mark in previous_round:
+        #             sector = mark['sector']
+        #             current.current_round_sector_hits[sector] += 1
+        #             current.sectors_hit_this_round.add(sector)
+                
+        #         # Update MPR
+        #         current.mpr = current.calculate_mpr()
+                
+        #         # Set current mark to the last mark in previous round
+        #         self.current_mark = len(previous_round) - 1
+        #         self.ids.progress_label.text = f"Replaying round {self.current_round + 1}/{len(self.game_history)}"
+        #     else:
+        #         return
+        # else:
+        #     # Undo the current mark
+        #     mark = current_round[self.current_mark]
+        #     self.game.undo_last_mark()
+        #     self.current_mark -= 1
+            
+        self.update_display()
 
     def update_replay_speed(self):
         """Update the pause duration when the speed setting changes"""
@@ -648,6 +749,8 @@ class ReplayScreen(Screen):
         self.is_paused = False
         self.ids.stop_button.text = '⏹️'
         self.ids.pause_button.text = '⏸️'
+        self.ids.step_back_button.disabled = True
+        self.ids.step_forward_button.disabled = True
         self.ids.replay_speed.text = str(self.pause_duration)
         
         # Start the replay
@@ -1252,7 +1355,11 @@ class GameScreen(Screen):
         # Format diffs with brackets and explicit sign
         self.ids.player1_diff.text = f"({'+' if p1_diff > 0 else '-' if p1_diff == 0 else ''}{p1_diff})"
         self.ids.player2_diff.text = f"({'+' if p2_diff > 0 else '-' if p2_diff == 0 else ''}{p2_diff})"
-        
+        # set the text color to orange if the diff is negative, and white otherwise 
+        self.ids.player1_diff.color = SectorButton.ORANGE if p1_diff < 0 else SectorButton.WHITE
+        self.ids.player2_diff.color = SectorButton.ORANGE if p2_diff < 0 else SectorButton.WHITE
+
+
         # Update player backgrounds based on current player (dark theme)
         p1_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 0 else [0.18, 0.18, 0.18, 1]
         p2_bg = [0.2, 0.5, 0.2, 1] if self.game.current_player == 1 else [0.18, 0.18, 0.18, 1]
