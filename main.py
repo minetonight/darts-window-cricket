@@ -365,12 +365,6 @@ class MessageScreen(Screen):
         self.on_confirm = on_confirm
         self.caller_screen = caller_screen
         self.ids.title_label.text = title
-        # self.ids.history_text.text = message
-        # count message lines and add lines up to 500 lines
-        # REASON: the message text screen label is created once and some messages longer than the first message are not fully displayed
-        lines = message.split('\n')
-        for line in range(0, 500-len(lines)):
-            message += '\n' # add empty lines to the message
         self.ids.history_text.text = message
         self.scroll_to_top()
 

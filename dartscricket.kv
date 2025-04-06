@@ -532,7 +532,7 @@
                 background_color: (0.3, 0.3, 0.3, 1)
                 color: (0.9, 0.3, 0.3, 1) # Red-ish text
                 font_name: 'assets/fonts/NotoEmoji-Regular.ttf'
-                font_size: '28sp'
+                font_size: '20sp'
                 bold: True
                 on_release: root.confirm_delete()
 
@@ -837,8 +837,8 @@
                 text: ''
                 font_size: '16sp'
                 size_hint_y: None
-                height: self.texture_size[1] # key for scrolling
-                text_size: self.width - dp(20), None  # Account for padding
+                height: 8000
+                text_size: self.width - dp(20), self.height+50  # Account for padding; set explicit height
                 halign: 'left'  # Left align text
                 valign: 'top'   # Start from top
                 padding: '10dp'  # Add padding around text

@@ -101,5 +101,5 @@ v   )) 3.0.0 - replay end kicks you out to homescreen, not to history
 v   )) double tap to use a list item in replays or stats
 v   )) read text - "list index out of range" on my phone, for non-first file. Depends on export feature
 v   )) sort the files by the date and time written in the filenames
-v   )) 3.5.0 - messages label is fixed to the size of the first message. Shit solution: make all messages up to 500 lines at least. 
+v   )) 3.5.1 - messages label was fixed to the size of the first message. Shit solution: make all messages up to 8000px. 
 
