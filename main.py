@@ -13,7 +13,7 @@ from kivy.uix.label import Label
 from kivy.uix.popup import Popup
 from kivy.metrics import dp
 import zipfile
-from datetime import datetime
+from datetime import datetime, timedelta
 from kivy.utils import platform
 
 class PlayerContainer(BoxLayout):
@@ -955,12 +955,37 @@ class PlayerStatsScreen(Screen):
     def load_player_stats(self):
         """Load and calculate player statistics from game history"""
         try:
-            # Get all game files
-            files = self.game_history.get_history_files()
+            # Calculate all-time stats using helper
+            self.player_stats = self._calculate_stats_for_period()
             
+            # Update the player list
+            self.ids.player_list.data = [
+                {'text': name, 'selected': False} for name in self.player_stats.keys()
+            ]
+
+        except Exception as e:
+            self.show_message('Error', f'Failed to load player stats:\n{str(e)}')
+
+    def _calculate_stats_for_period(self, start_date=None, end_date=None):
+            """Calculate player statistics for a specific time period
+
+            Args:
+                start_date (datetime): Optional start date filter (inclusive)
+                end_date (datetime): Optional end date filter (inclusive)
+
+            Returns:
+                dict: Player statistics dictionary
+            """
+            # Get all filtered game files
+            files = self.game_history.get_history_files(
+                completed_only=True,
+                start_date=start_date,
+                end_date=end_date
+            )
+
             # Initialize player stats dictionary
-            self.player_stats = {}
-            
+            period_stats = {}
+
             # Process each game file
             for file in files:
                 game_data = self.game_history.load_game(file)
@@ -970,8 +995,8 @@ class PlayerStatsScreen(Screen):
                 # Process each player in the game
                 for player in game_data['players']:
                     name = player['name']
-                    if name not in self.player_stats:
-                        self.player_stats[name] = {
+                    if name not in period_stats:
+                        period_stats[name] = {
                             'games_played': 0,
                             'games_won': 0,
                             'total_rounds': 0,
@@ -985,7 +1010,7 @@ class PlayerStatsScreen(Screen):
                             'total_sector_hits': 0
                         }
                     
-                    stats = self.player_stats[name]
+                    stats = period_stats[name]
                     stats['games_played'] += 1
                     
                     # Calculate rounds in this game
@@ -1022,7 +1047,7 @@ class PlayerStatsScreen(Screen):
                         stats['games_won'] += 1
             
             # Calculate averages and format stats for display
-            for name, stats in self.player_stats.items():
+            for name, stats in period_stats.items():
                 if stats['games_played'] > 0:
                     stats['avg_rounds'] = stats['total_rounds'] / stats['games_played']
                     stats['avg_mpr'] = stats['total_mpr'] / stats['games_played']
@@ -1039,43 +1064,88 @@ class PlayerStatsScreen(Screen):
                         stats['most_hit_sector'] = max(stats['sector_hits'].items(), key=lambda x: x[1])[0]
                         stats['least_hit_sector'] = min(stats['sector_hits'].items(), key=lambda x: x[1])[0]
             
-            # Update the player list
-            self.ids.player_list.data = [
-                {'text': name, 'selected': False} for name in self.player_stats.keys()
-            ]
-            
-        except Exception as e:
-            self.show_message('Error', f'Failed to load player stats:\n{str(e)}')
+            return period_stats
+
 
     def show_player_details(self):
-        """Show detailed statistics for the selected player"""
+        """Show detailed statistics for the selected player with tiered time periods"""
         if self.selected_index is None:
             return
             
         try:
             selected_name = self.ids.player_list.data[self.selected_index]['text']
-            stats = self.player_stats[selected_name]
+            
+            # Define time periods
+            now = datetime.now()
+            periods = [
+                {
+                    'label': 'Last Week',
+                    'start_date': now - timedelta(days=7),
+                    'end_date': now
+                },
+                {
+                    'label': 'Last 30 Days',
+                    'start_date': now - timedelta(days=30),
+                    'end_date': now
+                },
+                {
+                    'label': 'Last 6 Months',
+                    'start_date': now - timedelta(days=183),
+                    'end_date': now
+                },
+                {
+                    'label': 'All Time Stats',
+                    'start_date': None,
+                    'end_date': None
+                }
+            ]
             
             # Format the details text
             details = []
-            details.append(f"Player: {selected_name}")
-            details.append(f"Games Played: {stats['games_played']}")
-            details.append(f"Games Won: {stats['games_won']}")
-            details.append(f"Win Rate: {stats['win_rate']:.1f}%")
-            details.append(f"Average Rounds: {stats['avg_rounds']:.1f}")
-            details.append(f"Min Rounds: {stats['min_rounds']}")
-            details.append(f"Max Rounds: {stats['max_rounds']}")
-            details.append(f"Average MPR: {stats['avg_mpr']:.2f}")
-            details.append(f"Min MPR: {stats['min_mpr']:.2f}")
-            details.append(f"Max MPR: {stats['max_mpr']:.2f}")
+            details.append(f"Player: {selected_name}\n")
+
+            # Generate stats for each period
+            for period in periods:
+                period_stats = self._calculate_stats_for_period(
+                    start_date=period['start_date'],
+                    end_date=period['end_date']
+                )
+
+                # Check if player has stats in this period
+                if selected_name not in period_stats:
+                    details.append(f"{'='*50}")
+                    details.append(f"{period['label']}")
+                    details.append(f"{'='*50}")
+                    details.append("No games played in this period\n")
+                    continue
+
+                stats = period_stats[selected_name]
+
+                # Format section header
+                details.append(f"{'='*50}")
+                details.append(f"{period['label']}")
+                details.append(f"{'='*50}")
+
+                # Format statistics
+                details.append(f"Games Played: {stats['games_played']}")
+                details.append(f"Games Won: {stats['games_won']}")
+                details.append(f"Win Rate: {stats['win_rate']:.1f}%")
+                details.append(f"Average Rounds: {stats['avg_rounds']:.1f}")
+                details.append(f"Min Rounds: {stats['min_rounds']}")
+                details.append(f"Max Rounds: {stats['max_rounds']}")
+                details.append(f"Average MPR: {stats['avg_mpr']:.2f}")
+                details.append(f"Min MPR: {stats['min_mpr']:.2f}")
+                details.append(f"Max MPR: {stats['max_mpr']:.2f}")
             
-            # Add sector statistics
-            details.append("\nSector Statistics:")
-            for sector in sorted(stats['sector_hits'].keys()):
-                hits = stats['sector_hits'][sector]
-                games = stats['sector_games'][sector]
-                avg = stats['sector_avgs'][sector]
-                details.append(f"{sector if sector != 'Bull' else 'Bull'}: {avg:.2f} hit/game) ({hits} hits in {games} games)")
+                # Add sector statistics
+                details.append("\nSector Statistics:")
+                for sector in sorted(stats['sector_hits'].keys()):
+                    hits = stats['sector_hits'][sector]
+                    games = stats['sector_games'][sector]
+                    avg = stats['sector_avgs'][sector]
+                    details.append(f"{sector if sector != 'Bull' else 'Bull'}: {avg:.2f} hit/game) ({hits} hits in {games} games)")
+
+                details.append("")  # Blank line between sections
             
             # Show details in message screen
             text_screen = self.manager.get_screen('message')

@@ -242,12 +242,14 @@ class GameHistory:
         except Exception as e:
             return None, f"Failed to import history: {str(e)}"
 
-    def get_history_files(self, completed_only=True):
+    def get_history_files(self, completed_only=True, start_date=None, end_date=None):
         """Get list of history files sorted by the timestamp in the filename
         
         Args:
             completed_only (bool): If True, return only completed games (default).
                                  If False, return only uncompleted (aborted) games.
+            start_date (datetime): Optional start date filter (inclusive)
+            end_date (datetime): Optional end date filter (inclusive)
         """
         # Get list of files
         files = []
@@ -269,6 +271,17 @@ class GameHistory:
                         filepath = os.path.join(self.base_dir, f)
                         mtime = os.path.getmtime(filepath)
                         files.append((f, datetime.fromtimestamp(mtime)))
+
+        # Filter by date range if provided
+        if start_date is not None or end_date is not None:
+            filtered_files = []
+            for filename, timestamp in files:
+                if start_date and timestamp < start_date:
+                    continue
+                if end_date and timestamp > end_date:
+                    continue
+                filtered_files.append((filename, timestamp))
+            files = filtered_files
         
         # Sort by timestamp, most recent first
         files.sort(key=lambda x: x[1], reverse=True)

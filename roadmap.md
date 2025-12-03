@@ -76,6 +76,7 @@ v   )) avg min and max rounds,
 v   )) avg min and max mprs, 
 v   )) sectors stats, 
 v   )) delete button for test replays.
+    )) statistics for a person are tiered: all time stats, last 6 months, last month, last week.
 
 v   ) export game files locally
 v   )) android does not ask for permissions
