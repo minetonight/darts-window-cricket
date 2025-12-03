@@ -1122,9 +1122,9 @@ class PlayerStatsScreen(Screen):
                 stats = period_stats[selected_name]
 
                 # Format section header
-                details.append(f"{'='*50}")
+                details.append(f"{'='*40}")
                 details.append(f"{period['label']}")
-                details.append(f"{'='*50}")
+                details.append(f"{'='*40}")
 
                 # Format statistics
                 details.append(f"Games Played: {stats['games_played']}")
