@@ -56,6 +56,9 @@ python main.py
 1. First, install Buildozer:
 ```bash
 pip install buildozer
+
+# also add buildozer dependancies
+sudo apt install -y git zip unzip openjdk-17-jdk python3-pip autoconf libtool pkg-config zlib1g-dev libncurses5-dev libncursesw5-dev cmake libffi-dev libssl-dev
 ```
 
 2. Initialize Buildozer:
@@ -65,7 +68,10 @@ buildozer init
 
 3. Build the Android APK:
 ```bash
-buildozer android debug deploy run
+# use python venv for pip and buildozer.
+# NB! the system does not contain these packages
+source /home/aleks/Development/Python/darts-window-cricket/.venv/bin/activate
+buildozer android debug deploy
 ```
 
 ## How to Play
